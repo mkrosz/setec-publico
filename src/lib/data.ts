@@ -216,7 +216,7 @@ export async function getFeaturedSessions(): Promise<Session[]> {
 
     try {
       // Concatena data e hora final (ex: "2026-10-08T13:40:00")
-      const endTimeString = `${s.date}T${s.timeEnd.length === 5 ? s.timeEnd + ':00' : s.timeEnd}`;
+      const endTimeString = `${s.date}T${s.timeEnd.length === 5 ? s.timeEnd + ':00' : s.timeEnd}-03:00`;
       const sessionEndTime = new Date(endTimeString);
 
       // Mantém apenas palestras cujo fim é maior que o momento atual
