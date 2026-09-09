@@ -7,6 +7,9 @@ import CTASection from '@/components/CTASection.astro';
 import Footer from '@/components/Footer.astro';
 import { getEventInfo, getPartners, getFeaturedSessions, getSpeakerById } from '@/lib/data';
 
+// Desativa o cache HTTP na Vercel e navegadores para forçar renderização em tempo real
+Astro.response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+
 const event = await getEventInfo();
 const partners = await getPartners();
 const featuredSessions = await getFeaturedSessions();

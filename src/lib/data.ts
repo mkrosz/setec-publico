@@ -83,9 +83,10 @@ export async function getEventInfo(): Promise<EventInfo & {
   let ano = new Date().getFullYear().toString();
 
   if (supabase) {
+    // Adicionado cabeçalho no-store para forçar busca sem cache no Supabase
     let { data } = await supabase
       .from('event_config')
-      .select('*')
+      .select('*', { head: false })
       .limit(1)
       .maybeSingle();
 
