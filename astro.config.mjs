@@ -1,7 +1,7 @@
 import { defineConfig } from 'astro/config';
-import tailwind from '@astrojs/tailwind';
+import vercel from '@astrojs/vercel';
 
 export default defineConfig({
-  integrations: [tailwind({ applyBaseStyles: false })],
-  site: 'https://setec.example.com',
+  output: 'server',
+  adapter: vercel(),
 });
