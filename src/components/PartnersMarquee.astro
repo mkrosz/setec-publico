@@ -1,0 +1,47 @@
+---
+import type { Partner } from '@/lib/types';
+
+interface Props {
+  partners: Partner[];
+}
+
+const { partners = [] } = Astro.props;
+
+// Duplica a lista para dar efeito de scroll infinito contínuo no marquee.
+const validPartners = partners.filter((p) => Boolean(p.logoUrl));
+const loopedPartners =
+  validPartners.length > 0
+    ? [...validPartners, ...validPartners, ...validPartners, ...validPartners]
+    : [];
+---
+
+{
+  loopedPartners.length > 0 && (
+    <section class="relative z-0 -mt-14 border-y border-[var(--border-color)] bg-[#0d1015] [.light_&]:bg-[#f7f7f7] pb-8 pt-20 sm:-mt-20 sm:pt-24">
+      <p class="mb-6 text-center text-xs font-medium uppercase tracking-[0.25em] text-[var(--text-secondary)] opacity-60">
+        Colaboradores &amp; Parceiros do Evento
+      </p>
+
+      <div class="relative overflow-hidden py-4">
+        {/* Degradê lateral para suavizar a entrada e saída das logos */}
+        <div class="pointer-events-none absolute inset-y-0 left-0 z-10 w-20 bg-gradient-to-r from-[#0d1015] [.light_&]:from-[#f7f7f7] to-transparent sm:w-32" aria-hidden="true"></div>
+        <div class="pointer-events-none absolute inset-y-0 right-0 z-10 w-20 bg-gradient-to-l from-[#0d1015] [.light_&]:from-[#f7f7f7] to-transparent sm:w-32" aria-hidden="true"></div>
+
+        <div class="flex w-max animate-marquee items-center gap-16 px-4 pr-16">
+          {
+            loopedPartners.map((partner) => (
+              <div class="flex items-center justify-center p-2 opacity-80 transition-transform duration-300 hover:scale-150 hover:opacity-100">
+                <img
+                  src={partner.logoUrl}
+                  alt={partner.name || 'Logo do patrocinador'}
+                  class="h-8 w-auto max-w-[150px] object-contain sm:h-10"
+                  loading="lazy"
+                />
+              </div>
+            ))
+          }
+        </div>
+      </div>
+    </section>
+  )
+}

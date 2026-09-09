@@ -1,0 +1,92 @@
+---
+import type { Session, Speaker } from '@/lib/types';
+
+interface Props {
+  session: Session;
+  speakers: Speaker[];
+  dayId?: string;
+}
+
+const { session, speakers, dayId = '' } = Astro.props;
+const primary = speakers[0];
+const hasMultiple = speakers.length > 1;
+
+const badgeStyle = 'text-white/85 border-white/15 bg-black/40 backdrop-blur-sm';
+const resolvedDayId = String(dayId || session.dayId || '').toLowerCase().trim();
+---
+
+<button
+  type="button"
+  data-session-card
+  data-session-id={session.id}
+  data-day-id={resolvedDayId}
+  data-category={session.category.toLowerCase().trim()}
+  data-title={session.title.toLowerCase()}
+  data-speakers={speakers.map((sp) => sp.name.toLowerCase()).join(' ')}
+  data-session-trigger={session.id}
+  class="group relative flex aspect-[3/4] w-full flex-col overflow-hidden rounded-2xl border border-white/5 text-left shadow-card transition-transform duration-300 hover:-translate-y-1 hover:border-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+>
+  {
+    hasMultiple ? (
+      <div class="absolute inset-0 flex items-center justify-center bg-base-800">
+        {speakers.slice(0, 2).map((sp, i) => (
+          <img
+            src={sp.photoUrl}
+            alt={sp.name}
+            loading="lazy"
+            class:list={[
+              'h-16 w-16 rounded-full border-2 border-base-850 object-cover',
+              i === 1 ? '-ml-4' : '',
+            ]}
+          />
+        ))}
+      </div>
+    ) : (
+      <img
+        src={primary?.photoUrl}
+        alt={primary?.name}
+        loading="lazy"
+        class="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
+      />
+    )
+  }
+
+  <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/5" aria-hidden="true"></div>
+
+  <div class="absolute left-4 top-4 flex items-center gap-2">
+    <span class:list={['rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide', badgeStyle]}>
+      #{session.category}
+    </span>
+  </div>
+  <span class="absolute right-4 top-4 rounded-full border border-white/15 bg-black/40 px-2.5 py-1 text-[11px] font-medium text-white/80 backdrop-blur-sm">
+    {session.timeStart} - {session.timeEnd}
+  </span>
+
+  <div class="relative mt-auto flex flex-col gap-3 p-5">
+    <h3 class="font-display text-base font-semibold leading-snug text-white sm:text-lg">
+      {session.title}
+    </h3>
+
+    <div class="flex items-center justify-between border-t border-white/15 pt-4">
+      <div>
+        <p class="text-sm font-medium text-white/80">
+          {hasMultiple ? 'Painelistas Convidados' : primary?.name}
+        </p>
+        <p class="text-xs text-white/50">{hasMultiple ? 'Diversas Empresas' : primary?.role}</p>
+      </div>
+      <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/15 bg-black/20 text-white/70 backdrop-blur-sm transition-colors group-hover:border-accent group-hover:text-accent" aria-hidden="true">
+        {
+          hasMultiple ? (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-3.5 w-3.5">
+              <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-3.5 w-3.5">
+              <path d="M7 17 17 7M17 7H9M17 7v8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          )
+        }
+      </span>
+    </div>
+  </div>
+</button>

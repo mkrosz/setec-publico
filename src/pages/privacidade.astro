@@ -1,0 +1,93 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import Footer from '@/components/Footer.astro';
+import Logo from '@/components/Logo.astro';
+import { getEventInfo } from '@/lib/data';
+
+const event = await getEventInfo();
+---
+
+<Layout title="Privacidade e Informações — SETEC XXXIII">
+  <header class="mx-auto max-w-4xl px-6 pt-10">
+    <div class="mb-8 flex items-center justify-between">
+      <a
+        href="/"
+        class="inline-flex items-center gap-2 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-4 w-4">
+          <path
+            d="M15 19 8 12l7-7"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"></path>
+        </svg>
+        Voltar para o Início
+      </a>
+      <Logo />
+    </div>
+
+    <h1 class="font-display text-3xl font-bold uppercase leading-tight text-[var(--text-primary)] sm:text-5xl">
+      Privacidade &<br />Informações Institucionais
+    </h1>
+    <p class="mt-4 text-sm text-[var(--text-secondary)] sm:text-base">
+      Saiba mais sobre a nossa instituição, o propósito do evento e como tratamos o seu acesso.
+    </p>
+  </header>
+
+  <main class="mx-auto max-w-4xl px-6 py-12 divide-y divide-[var(--border-color)] text-[var(--text-primary)]">
+    {/* Seção 1: Transparência e Privacidade */}
+    <section class="pb-10 pt-2">
+      <h2 class="font-display text-xl font-bold uppercase tracking-wide text-accent mb-4">
+        🔒 Privacidade de Dados & Acesso
+      </h2>
+      <p class="text-sm leading-relaxed text-[var(--text-secondary)] sm:text-base">
+        Este site possui caráter estritamente informativo e de consulta pública. Não realizamos coleta de dados pessoais, rastreamento de comportamento do usuário, cookies de terceiros para fins publicitários ou criação de contas de usuário. O portal opera como uma plataforma de leitura pública, sem necessidade de autenticação, senhas ou preenchimento de formulários cadastrais.
+      </p>
+    </section>
+
+    {/* Seção 2: Caráter Público, Laico e Sem Fins Lucrativos */}
+    <section class="py-10">
+      <h2 class="font-display text-xl font-bold uppercase tracking-wide text-accent mb-4">
+        🏛️ Caráter Público, Laico e Sem Fins Lucrativos
+      </h2>
+      <p class="text-sm leading-relaxed text-[var(--text-secondary)] sm:text-base">
+        A Semana de Tecnologia (SETEC) é um evento de extensão universitária promovido pela FATEC Sorocaba, uma instituição pública de ensino superior mantida pelo Governo do Estado de São Paulo através do Centro Paula Souza. Reafirmamos nosso compromisso com a gratuidade, a promoção do conhecimento técnico-científico, a laicidade e o interesse público, sem qualquer vínculo político, religioso ou finalidade lucrativa.
+      </p>
+    </section>
+
+    {/* Seção 3: Sobre a SETEC e a Instituição */}
+    <section class="py-10">
+      <h2 class="font-display text-xl font-bold uppercase tracking-wide text-accent mb-4">
+        💡 Sobre a SETEC e a FATEC Sorocaba
+      </h2>
+      <p class="text-sm leading-relaxed text-[var(--text-secondary)] sm:text-base">
+        A SETEC une alunos, docentes, profissionais do mercado e entusiastas de tecnologia em uma imersão de palestras, workshops e minicursos. O evento visa impulsionar o ecossistema tecnológico regional, aproximar o ambiente acadêmico do mercado de trabalho e disseminar conhecimento sobre as principais tendências em desenvolvimento de software, inteligência artificial, infraestrutura e inovação.
+      </p>
+    </section>
+
+    {/* Seção 4: Apoio ao Evento e Contato direto */}
+    <section id="apoio" class="pt-10">
+      <h2 class="font-display text-xl font-bold uppercase tracking-wide text-accent mb-4">
+        🤝 Apoie a SETEC
+      </h2>
+      <p class="text-sm leading-relaxed text-[var(--text-secondary)] sm:text-base mb-6">
+        Apoiar a Semana de Tecnologia é uma oportunidade de conectar sua empresa, comunidade ou instituição a novos talentos da computação e fortalecer a formação acadêmica pública e gratuita na região. Empresas e apoiadores participam contribuindo com patrocínios, infraestrutura e mentoria.
+      </p>
+
+      <div class="border-t border-[var(--border-color)] pt-6 space-y-3">
+        <h3 class="text-sm font-semibold uppercase tracking-wider text-[var(--text-primary)]">
+          Canais Oficiais de Contato:
+        </h3>
+        <p class="text-sm text-[var(--text-secondary)]">
+          📧 <strong>E-mail institucional:</strong> <a href="mailto:contato@fatecsorocaba.edu.br" class="text-accent hover:underline">contato@fatecsorocaba.edu.br</a>
+        </p>
+        <p class="text-sm text-[var(--text-secondary)]">
+          📞 <strong>Telefone:</strong> <a href="tel:+551532385260" class="text-accent hover:underline">(15) 3238-5260</a>
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <Footer eventAtivo={event.eventoAtivo} />
+</Layout>

@@ -1,0 +1,328 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import Footer from '@/components/Footer.astro';
+import Logo from '@/components/Logo.astro';
+import SessionCard from '@/components/SessionCard.astro';
+import { getEventInfo, getSessionsGroupedByDay, getSpeakers } from '@/lib/data';
+
+const event = await getEventInfo();
+
+// Redireciona o usuário para a página principal se o evento estiver desativado
+if (!event.eventoAtivo) {
+  return Astro.redirect('/');
+}
+
+const groupedDays = await getSessionsGroupedByDay();
+const allSpeakers = await getSpeakers();
+
+function resolveSpeakers(speakerIds: string[]) {
+  return allSpeakers.filter((sp) => speakerIds.includes(sp.id));
+}
+
+const allSessions = groupedDays.flatMap((day) => day.sessions);
+const categories = Array.from(new Set(allSessions.map((s) => s.category))).sort();
+
+const eventDaysList = groupedDays.map((day) => {
+  const parts = day.dayLabel.split(',');
+  const dayName = parts[0]?.trim().slice(0, 3).toUpperCase() || 'DIA';
+  const dayNumber = parts[1]?.trim().match(/\d+/)?.[0] || '';
+
+  return {
+    dayId: day.dayId.toLowerCase().trim(),
+    label: dayName,
+    dateNum: dayNumber,
+  };
+});
+---
+
+<Layout title="Programação Completa — SETEC XXXIII">
+  <header class="mx-auto max-w-6xl px-6 pt-10">
+    <div class="mb-10 flex items-center justify-between">
+      <a
+        href="/"
+        class="inline-flex items-center gap-2 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-4 w-4">
+          <path
+            d="M15 19 8 12l7-7"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"></path>
+        </svg>
+        Voltar para o Início
+      </a>
+      <Logo class="hidden sm:flex" />
+    </div>
+
+    <span
+      class="mb-6 inline-flex items-center rounded-full border border-[var(--border-color)] bg-[var(--card-bg)] px-4 py-1.5 text-xs font-medium uppercase tracking-widest text-[var(--text-secondary)]"
+    >
+      {event.editionLabel} • {event.institution}
+    </span>
+
+    <h1 class="font-display text-4xl font-bold uppercase leading-[0.95] text-[var(--text-primary)] sm:text-6xl">
+      Programação<br />Completa
+    </h1>
+
+    <p class="mt-6 max-w-xl text-sm text-[var(--text-secondary)] sm:text-base">
+      Explore as palestras, workshops e painéis da Semana de Tecnologia. Planeje sua jornada
+      cibernética.
+    </p>
+
+    <!-- Barra Unificada de Pesquisa e Filtros -->
+    <div class="relative mt-8 flex items-center gap-3">
+      <div class="relative flex-1">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-secondary)]"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+        </svg>
+        <input
+          type="text"
+          id="search-input"
+          placeholder="Pesquisar palestra ou palestrante..."
+          class="w-full rounded-full border border-[var(--border-color)] bg-[var(--card-bg)] py-2.5 pl-11 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-secondary)] backdrop-blur-md transition-all focus:border-[var(--border-color)] focus:bg-[var(--card-bg)] focus:outline-none"
+        />
+      </div>
+
+      <div class="relative">
+        <button
+          type="button"
+          id="filter-dropdown-btn"
+          class="flex items-center gap-2 rounded-full border border-[var(--border-color)] bg-[var(--card-bg)] px-5 py-2.5 text-xs font-medium text-[var(--text-primary)] backdrop-blur-md transition-all hover:border-[var(--border-color)] hover:bg-[var(--card-bg)] hover:text-[var(--text-primary)] cursor-pointer"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="h-4 w-4 text-[var(--text-secondary)]">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" />
+          </svg>
+          <span>Filtros</span>
+          <span id="active-filter-badge" class="hidden h-2 w-2 rounded-full bg-accent"></span>
+        </button>
+
+        <!-- Dropdown Menu de Filtros -->
+        <div
+          id="filter-menu"
+          class="hidden absolute right-0 z-50 mt-2 w-80 sm:w-96 rounded-2xl border border-[var(--border-color)] bg-[var(--nav-bg)] p-5 shadow-2xl backdrop-blur-2xl"
+        >
+          <div class="mb-4 flex items-center justify-between border-b border-[var(--border-color)] pb-3">
+            <span class="text-xs font-semibold uppercase tracking-wider text-[var(--text-primary)]">Opções de Filtro</span>
+            <button type="button" id="clear-all-filters-btn" class="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer">Limpar Filtros</button>
+          </div>
+
+          <div class="flex flex-col gap-5">
+            <!-- Calendário com os Quadrados das Datas -->
+            <div>
+              <span class="mb-3 block text-[11px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">
+                Calendário do Evento
+              </span>
+              <div class="flex flex-wrap gap-2 text-center">
+                {
+                  eventDaysList.map((d) => (
+                    <button
+                      type="button"
+                      data-cal-day={d.dayId}
+                      class="cal-day-btn flex min-w-[60px] flex-1 flex-col items-center justify-center rounded-2xl border border-[var(--border-color)] bg-[var(--card-bg)] py-3 transition-all hover:border-[var(--border-color)] hover:bg-[var(--card-bg)] cursor-pointer [&.active]:border-[var(--nav-active-bg)] [&.active]:bg-[var(--nav-active-bg)] [&.active]:text-[var(--nav-active-text)]"
+                    >
+                      <span class="text-[10px] uppercase font-medium opacity-70">{d.label}</span>
+                      <span class="text-base font-bold">{d.dateNum}</span>
+                    </button>
+                  ))
+                }
+              </div>
+            </div>
+
+            <!-- Área do Conhecimento -->
+            <div>
+              <span class="mb-2.5 block text-[11px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">
+                Área do Conhecimento
+              </span>
+              <div class="flex flex-wrap gap-1.5">
+                {
+                  categories.map((category) => (
+                    <button
+                      type="button"
+                      data-tag-btn={category.toLowerCase()}
+                      class="tag-filter-btn rounded-full border border-[var(--border-color)] bg-[var(--card-bg)] px-3 py-1 text-xs text-[var(--text-secondary)] transition-all hover:border-[var(--border-color)] hover:text-[var(--text-primary)] cursor-pointer [&.active]:border-[var(--nav-active-bg)] [&.active]:bg-[var(--nav-active-bg)] [&.active]:text-[var(--nav-active-text)] [&.active]:font-semibold"
+                    >
+                      #{category}
+                    </button>
+                  ))
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-6xl px-6 py-14">
+    <div id="no-results" class="hidden py-12 text-center">
+      <p class="text-lg font-medium text-[var(--text-secondary)]">Nenhuma sessão encontrada para os critérios selecionados.</p>
+    </div>
+
+    {
+      groupedDays.map((day) => {
+        const cleanDayId = day.dayId.toLowerCase().trim();
+        return (
+          <section class="mb-16 day-section" data-section-day={cleanDayId}>
+            <h2 class="mb-8 flex items-center gap-6 font-display text-xl font-bold uppercase tracking-wide text-[var(--text-primary)] sm:text-2xl">
+              <span class="shrink-0">{day.dayLabel}</span>
+              <span class="h-px w-full bg-[var(--border-color)]" aria-hidden="true"></span>
+            </h2>
+
+            <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {day.sessions.map((session) => (
+                <SessionCard session={session} speakers={resolveSpeakers(session.speakerIds)} dayId={cleanDayId} />
+              ))}
+            </div>
+          </section>
+        );
+      })
+    }
+  </main>
+
+  <Footer />
+</Layout>
+
+<script>
+  function setupProgramacaoFilters() {
+    const searchInput = document.getElementById('search-input') as HTMLInputElement | null;
+    const filterBtn = document.getElementById('filter-dropdown-btn');
+    const filterMenu = document.getElementById('filter-menu');
+    const activeBadge = document.getElementById('active-filter-badge');
+    const clearAllBtn = document.getElementById('clear-all-filters-btn');
+    const calDayBtns = document.querySelectorAll<HTMLButtonElement>('.cal-day-btn');
+    const tagBtns = document.querySelectorAll<HTMLButtonElement>('.tag-filter-btn');
+    const daySections = document.querySelectorAll<HTMLElement>('.day-section');
+    const noResults = document.getElementById('no-results');
+
+    const selectedDays = new Set<string>();
+    const selectedCategories = new Set<string>();
+
+    if (filterBtn && filterMenu) {
+      filterBtn.onclick = (e) => {
+        e.stopPropagation();
+        filterMenu.classList.toggle('hidden');
+      };
+
+      document.addEventListener('click', (e) => {
+        if (!filterMenu.contains(e.target as Node) && !filterBtn.contains(e.target as Node)) {
+          filterMenu.classList.add('hidden');
+        }
+      });
+    }
+
+    function applyFilters() {
+      const query = searchInput?.value.toLowerCase().trim() || '';
+      let visibleCardsTotal = 0;
+
+      const hasFilterActive = selectedDays.size > 0 || selectedCategories.size > 0 || query !== '';
+
+      if (activeBadge) {
+        if (hasFilterActive) {
+          activeBadge.classList.remove('hidden');
+        } else {
+          activeBadge.classList.add('hidden');
+        }
+      }
+
+      daySections.forEach((section) => {
+        const sectionDayId = (section.getAttribute('data-section-day') || '').toLowerCase().trim();
+        const matchesDay = selectedDays.size === 0 || selectedDays.has(sectionDayId);
+
+        let sectionVisibleCards = 0;
+
+        const cards = section.querySelectorAll<HTMLElement>('[data-session-card]');
+        cards.forEach((card) => {
+          const title = (card.getAttribute('data-title') || '').toLowerCase();
+          const speakers = (card.getAttribute('data-speakers') || '').toLowerCase();
+          const category = (card.getAttribute('data-category') || '').toLowerCase().trim();
+
+          const matchesQuery = !query || title.includes(query) || speakers.includes(query);
+          const matchesCategory = selectedCategories.size === 0 || selectedCategories.has(category);
+
+          if (matchesDay && matchesQuery && matchesCategory) {
+            card.classList.remove('hidden');
+            sectionVisibleCards++;
+            visibleCardsTotal++;
+          } else {
+            card.classList.add('hidden');
+          }
+        });
+
+        if (sectionVisibleCards === 0) {
+          section.classList.add('hidden');
+        } else {
+          section.classList.remove('hidden');
+        }
+      });
+
+      if (noResults) {
+        if (visibleCardsTotal === 0) {
+          noResults.classList.remove('hidden');
+        } else {
+          noResults.classList.add('hidden');
+        }
+      }
+    }
+
+    searchInput?.addEventListener('input', applyFilters);
+
+    calDayBtns.forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const dayId = (btn.getAttribute('data-cal-day') || '').toLowerCase().trim();
+        if (!dayId) return;
+
+        if (selectedDays.has(dayId)) {
+          selectedDays.delete(dayId);
+          btn.classList.remove('active');
+        } else {
+          selectedDays.add(dayId);
+          btn.classList.add('active');
+        }
+        applyFilters();
+      });
+    });
+
+    tagBtns.forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const tag = (btn.getAttribute('data-tag-btn') || '').toLowerCase().trim();
+        if (!tag) return;
+
+        if (selectedCategories.has(tag)) {
+          selectedCategories.delete(tag);
+          btn.classList.remove('active');
+        } else {
+          selectedCategories.add(tag);
+          btn.classList.add('active');
+        }
+        applyFilters();
+      });
+    });
+
+    clearAllBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      selectedDays.clear();
+      selectedCategories.clear();
+      if (searchInput) searchInput.value = '';
+
+      calDayBtns.forEach((btn) => btn.classList.remove('active'));
+      tagBtns.forEach((btn) => btn.classList.remove('active'));
+      applyFilters();
+    });
+  }
+
+  setupProgramacaoFilters();
+  document.addEventListener('astro:page-load', setupProgramacaoFilters);
+</script>

@@ -1,0 +1,242 @@
+---
+import { getAllSessionsWithSpeakers } from '@/lib/data';
+
+const sessionsWithSpeakers = await getAllSessionsWithSpeakers();
+---
+
+<div
+  id="session-modal"
+  class="fixed inset-0 z-50 hidden items-center justify-center p-4 sm:p-6"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="modal-title"
+  data-state="closed"
+>
+  <div
+    id="session-modal-backdrop"
+    class="absolute inset-0 bg-black/70 [.light_&]:bg-slate-200/70 backdrop-blur-sm"
+    aria-hidden="true"
+  >
+  </div>
+
+  <div
+    id="session-modal-panel"
+    class="relative z-10 max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-[var(--border-color)] bg-[#111113] [.light_&]:bg-white shadow-2xl animate-scaleIn"
+  >
+    <button
+      type="button"
+      id="session-modal-close"
+      aria-label="Fechar"
+      class="absolute right-5 top-5 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border-color)] bg-white/10 dark:bg-white/10 text-[var(--text-secondary)] backdrop-blur-sm transition-colors hover:bg-white/20 hover:text-white"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-4 w-4">
+        <path
+          d="M6 6l12 12M18 6 6 18"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"></path>
+      </svg>
+    </button>
+
+    <!-- ROW 1: foto + título/nome/cargo/tags -->
+    <div class="grid grid-cols-1 gap-6 p-6 pb-0 sm:grid-cols-[220px_1fr] sm:gap-8 sm:p-8 sm:pb-0">
+      <img
+        id="modal-photo"
+        src=""
+        alt=""
+        class="h-[220px] w-[220px] rounded-xl object-cover object-top border border-[var(--border-color)]"
+      />
+
+      <div>
+        <h2
+          id="modal-title"
+          class="font-display text-2xl font-bold uppercase leading-tight text-[var(--text-primary)] sm:text-3xl"
+        >
+        </h2>
+
+        <p id="modal-speaker-name" class="mt-4 text-lg font-semibold text-[var(--text-primary)]"></p>
+        <p id="modal-speaker-role" class="text-sm text-[var(--text-secondary)]"></p>
+
+        <!-- Tags -->
+        <div class="mt-4 flex flex-wrap items-center gap-2" id="modal-tags"></div>
+      </div>
+    </div>
+
+    <!-- ROW 2: metadados -->
+    <div
+      class="mx-6 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-[var(--border-color)] py-5 text-sm text-[var(--text-secondary)] sm:mx-8"
+    >
+      <span class="flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-4 w-4 text-accent-soft">
+          <path
+            d="M7 3v3M17 3v3M4 8.5h16M5 5.5h14A1.5 1.5 0 0 1 20.5 7v12A1.5 1.5 0 0 1 19 20.5H5A1.5 1.5 0 0 1 3.5 19V7A1.5 1.5 0 0 1 5 5.5Z"
+            stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+        <span id="modal-date"></span>
+      </span>
+      <span class="text-white/25" aria-hidden="true">•</span>
+      <span class="flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-4 w-4 text-accent-soft">
+          <circle cx="12" cy="12" r="8.25" stroke="currentColor" stroke-width="1.6"></circle>
+          <path d="M12 8v4l2.5 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+        <span id="modal-time"></span>
+      </span>
+      <span class="text-white/25" aria-hidden="true">•</span>
+      <span class="flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-4 w-4 text-accent-soft">
+          <path
+            d="M12 21s7-6.1 7-11.5a7 7 0 1 0-14 0C5 14.9 12 21 12 21Z"
+            stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"></path>
+          <circle cx="12" cy="9.5" r="2.2" stroke="currentColor" stroke-width="1.6"></circle>
+        </svg>
+        <span id="modal-location"></span>
+      </span>
+    </div>
+
+    <!-- ROW 3: Sobre a Palestra / Sobre o Palestrante -->
+    <div class="grid grid-cols-1 gap-8 border-t border-[var(--border-color)] p-6 sm:grid-cols-2 sm:p-8">
+      <div>
+        <h3 class="mb-3 flex items-center gap-2 font-display text-base font-semibold text-accent-soft">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-4 w-4">
+            <path d="M6 3.5h9l3 3V20a.5.5 0 0 1-.5.5H6a.5.5 0 0 1-.5-.5V4a.5.5 0 0 1 .5-.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"></path>
+            <path d="M9 12h6M9 15.5h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
+          </svg>
+          Sobre a Palestra
+        </h3>
+        <p id="modal-description" class="text-sm leading-relaxed text-[var(--text-secondary)]"></p>
+      </div>
+
+      <div>
+        <h3 class="mb-3 flex items-center gap-2 font-display text-base font-semibold text-accent-soft">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-4 w-4">
+            <circle cx="12" cy="8" r="3.2" stroke="currentColor" stroke-width="1.6"></circle>
+            <path d="M5 20c0-3.3 3.1-6 7-6s7 2.7 7 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
+          </svg>
+          Sobre <span id="modal-about-label">o Palestrante</span>
+        </h3>
+        <p id="modal-bio" class="text-sm leading-relaxed text-[var(--text-secondary)]"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="application/json" id="sessions-data" set:html={JSON.stringify(sessionsWithSpeakers)}></script>
+
+<script>
+  interface SpeakerData {
+    id: string;
+    name: string;
+    role: string;
+    company: string;
+    photoUrl: string;
+    bio: string;
+  }
+  interface SessionData {
+    id: string;
+    title: string;
+    category: string;
+    editionTag: string;
+    dayLabel: string;
+    timeStart: string;
+    timeEnd: string;
+    location: string;
+    description: string;
+    speakers: SpeakerData[];
+  }
+
+  const dataEl = document.getElementById('sessions-data');
+  const sessions: SessionData[] = dataEl ? JSON.parse(dataEl.textContent || '[]') : [];
+
+  const modal = document.getElementById('session-modal') as HTMLDivElement | null;
+  const backdrop = document.getElementById('session-modal-backdrop');
+  const closeBtn = document.getElementById('session-modal-close');
+  const panel = document.getElementById('session-modal-panel');
+
+  function fillModal(session: SessionData) {
+    const primary = session.speakers && session.speakers.length > 0 ? session.speakers[0] : null;
+    const hasMultiple = session.speakers && session.speakers.length > 1;
+
+    // Tags
+    const tagsEl = document.getElementById('modal-tags')!;
+    tagsEl.innerHTML = `
+      <span class="rounded-full border border-[var(--border-color)] bg-[var(--card-bg)] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-primary)]">#${session.category || 'PALESTRA'}</span>
+      <span class="rounded-full border border-[var(--border-color)] bg-[var(--card-bg)] px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide text-[var(--text-secondary)]">${session.editionTag || 'SETEC XXXIII'}</span>
+    `;
+
+    // Título da Palestra
+    document.getElementById('modal-title')!.textContent = session.title || '';
+
+    // Nome do Palestrante
+    document.getElementById('modal-speaker-name')!.textContent = hasMultiple
+      ? 'Painelistas Convidados'
+      : (primary?.name || 'Palestrante Convidado');
+
+    // Cargo e Empresa formatados sem arroba solto
+    let roleCompany = '';
+    if (hasMultiple) {
+      roleCompany = 'Diversas Empresas';
+    } else if (primary) {
+      if (primary.role && primary.company) {
+        roleCompany = `${primary.role} @ ${primary.company}`;
+      } else {
+        roleCompany = primary.role || primary.company || '';
+      }
+    }
+    document.getElementById('modal-speaker-role')!.textContent = roleCompany;
+
+    // Data, Hora e Local
+    document.getElementById('modal-date')!.textContent = session.dayLabel || '';
+    document.getElementById('modal-time')!.textContent = `${session.timeStart || ''} - ${session.timeEnd || ''}`;
+    document.getElementById('modal-location')!.textContent = session.location || '';
+
+    // Foto do Palestrante
+    const photo = document.getElementById('modal-photo') as HTMLImageElement;
+    photo.src = primary?.photoUrl || '';
+    photo.alt = primary?.name || session.title || '';
+
+    // Descrições
+    document.getElementById('modal-description')!.textContent = session.description || '';
+    document.getElementById('modal-about-label')!.textContent = hasMultiple
+      ? 'os Palestrantes'
+      : 'o Palestrante';
+
+    document.getElementById('modal-bio')!.textContent = hasMultiple
+      ? session.speakers.map((s) => `${s.name} — ${s.role || ''} ${s.company ? `@ ${s.company}` : ''}.`).join(' ')
+      : (primary?.bio || 'Sem informações biográficas.');
+  }
+
+  function openModal(sessionId: string) {
+    const session = sessions.find((s) => String(s.id) === String(sessionId));
+    if (!session || !modal) return;
+    fillModal(session);
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    modal.dataset.state = 'open';
+    document.body.classList.add('modal-open');
+  }
+
+  function closeModal() {
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    modal.dataset.state = 'closed';
+    document.body.classList.remove('modal-open');
+  }
+
+  document.addEventListener('click', (event) => {
+    const trigger = (event.target as HTMLElement)?.closest('[data-session-trigger]');
+    if (trigger instanceof HTMLElement) {
+      const id = trigger.dataset.sessionTrigger;
+      if (id) openModal(id);
+    }
+  });
+
+  backdrop?.addEventListener('click', closeModal);
+  closeBtn?.addEventListener('click', closeModal);
+  panel?.addEventListener('click', (e) => e.stopPropagation());
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal?.dataset.state === 'open') closeModal();
+  });
+</script>

@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  color-scheme: dark;
+  --bg-primary: #0b0c10;
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.6);
+  --card-bg: rgba(255, 255, 255, 0.05);
+  --border-color: rgba(255, 255, 255, 0.1);
+  --nav-bg: rgba(18, 18, 20, 0.85);
+  --nav-active-bg: #ffffff;
+  --nav-active-text: #0b0c10;
+}
+
+html.light {
+  color-scheme: light;
+  --bg-primary: #f8fafc;
+  --text-primary: #0f172a;
+  --text-secondary: rgba(15, 23, 42, 0.65);
+  --card-bg: #ffffff;
+  --border-color: rgba(0, 0, 0, 0.1);
+  --nav-bg: rgba(255, 255, 255, 0.85);
+  --nav-active-bg: #0f172a;
+  --nav-active-text: #ffffff;
+}
+
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: theme('fontFamily.sans');
+  -webkit-font-smoothing: antialiased;
+}
+
+
+::selection {
+  background: theme('colors.accent.DEFAULT');
+  color: white;
+}
+
+/* Scrollbar discreta, combinando com o tema */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: theme('colors.base.600');
+  border-radius: 999px;
+}
+
+.text-gradient {
+  background: linear-gradient(90deg, #f5f3ff 0%, #c4b5fd 55%, #e879f9 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Modal open state: trava scroll do body */
+body.modal-open {
+  overflow: hidden;
+}

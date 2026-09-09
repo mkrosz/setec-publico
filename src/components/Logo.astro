@@ -1,0 +1,23 @@
+---
+import { getEventInfo } from '@/lib/data';
+
+const event = await getEventInfo();
+---
+
+<a href="/" class="inline-flex items-center gap-3 transition-opacity hover:opacity-90">
+  {
+    event.logoUrl ? (
+      <img
+        src={event.logoUrl}
+        alt="Logo SETEC"
+        class="h-10 w-auto max-w-[180px] object-contain transition-all [.light_&]:invert dark:invert-0"
+      />
+    ) : (
+      <div class="font-display leading-tight">
+        <span class="block text-[9px] tracking-[0.22em] text-[var(--text-secondary)]">SEMANA DE</span>
+        <span class="block text-base font-extrabold text-[var(--text-primary)]">TECNOLOGIA</span>
+        <span class="block text-[9px] tracking-[0.2em] text-accent">{event.editionLabel}</span>
+      </div>
+    )
+  }
+</a>

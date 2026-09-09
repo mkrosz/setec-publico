@@ -1,0 +1,55 @@
+---
+import type { EventInfo } from '@/lib/types';
+
+interface Props {
+  event: EventInfo;
+}
+
+const { event } = Astro.props;
+---
+
+<section
+  class="relative z-10 min-h-[104vh] overflow-hidden rounded-bl-[2.5rem] rounded-br-[2.5rem] bg-[var(--bg-primary)] dark:bg-hero-gradient pb-24 pt-16 sm:min-h-[108vh] sm:rounded-bl-[3rem] sm:rounded-br-[3rem] sm:pt-20"
+>
+  <!-- brilho decorativo -->
+  <div
+    class="pointer-events-none absolute -top-32 right-[-10%] h-[420px] w-[420px] rounded-full bg-accent/30 blur-[120px]"
+    aria-hidden="true"
+  >
+  </div>
+  <div
+    class="pointer-events-none absolute -bottom-24 left-[-10%] h-[320px] w-[320px] rounded-full bg-fuchsia-500/20 blur-[110px]"
+    aria-hidden="true"
+  >
+  </div>
+
+  <!-- Bloco de texto: centralizado no espaço acima do rodapé, deslocado para cima com -mt -->
+  <div
+    class="relative -mt-16 mx-auto flex h-full min-h-[calc(104vh-6rem)] w-full max-w-6xl flex-col items-center justify-center px-6 text-center sm:-mt-24 sm:min-h-[calc(108vh-7rem)]"
+  >
+    <span
+      class="mb-8 inline-flex items-center rounded-full border border-[var(--border-color)] bg-[var(--card-bg)] px-4 py-1.5 text-xs font-medium uppercase tracking-widest text-[var(--text-primary)]"
+    >
+      {event.editionLabel}
+    </span>
+
+    <h1
+      class="font-display text-5xl font-bold uppercase leading-[0.95] tracking-tight text-[var(--text-primary)] sm:text-6xl md:text-7xl"
+    >
+      Semana de<br />Tecnologia
+    </h1>
+
+    <p class="mt-8 max-w-xl text-balance text-base text-[var(--text-secondary)] sm:text-lg">
+      Explore as fronteiras da inovação, conecte-se com especialistas e mergulhe em workshops
+      práticos. A revolução técnica começa aqui.
+    </p>
+  </div>
+
+  <!-- Rodapé do hero: fixo perto da base, fora do bloco centralizado -->
+  <div
+    class="absolute inset-x-0 bottom-10 flex w-full flex-col items-center justify-between gap-3 px-8 text-xs uppercase tracking-widest text-[var(--text-secondary)] sm:flex-row sm:px-12 lg:px-20"
+  >
+    <span class="text-[var(--text-primary)] font-medium">{event.institution}</span>
+    <span class="text-[var(--text-secondary)]">/// Evento Presencial + Workshops</span>
+  </div>
+</section>

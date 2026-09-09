@@ -1,0 +1,111 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import Hero from '@/components/Hero.astro';
+import PartnersMarquee from '@/components/PartnersMarquee.astro';
+import SpeakerCard from '@/components/SpeakerCard.astro';
+import CTASection from '@/components/CTASection.astro';
+import Footer from '@/components/Footer.astro';
+import { getEventInfo, getPartners, getFeaturedSessions, getSpeakerById } from '@/lib/data';
+
+const event = await getEventInfo();
+const partners = await getPartners();
+const featuredSessions = await getFeaturedSessions();
+
+const featured = await Promise.all(
+  featuredSessions.map(async (session) => ({
+    session,
+    speaker: await getSpeakerById(session.speakerIds[0]),
+  }))
+);
+---
+
+<Layout title="Semana de Tecnologia — SETEC XXXIII">
+  <Hero event={event} />
+
+  {/* Oculta o carrossel e a seção de palestrantes se o evento estiver oculto */}
+  {
+    event.eventoAtivo && (
+      <>
+        <PartnersMarquee partners={partners} />
+
+        <section id="palestrantes" class="mx-auto max-w-6xl px-6 py-16">
+          <div class="mb-10 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
+            <div>
+              <h2 class="font-display text-3xl font-bold uppercase text-[var(--text-primary)] sm:text-4xl">
+                Palestrantes<br />Destaque
+              </h2>
+            </div>
+            <a
+              href="/programacao"
+              class="inline-flex items-center gap-2 rounded-full border border-[var(--border-color)] px-5 py-2.5 text-sm font-medium text-[var(--text-primary)] transition-colors hover:border-accent hover:text-accent"
+            >
+              Ver Programação Completa ↗
+            </a>
+          </div>
+
+          <p class="mb-6 flex items-center gap-2 text-xs font-medium uppercase tracking-widest text-[var(--text-secondary)]">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-3.5 w-3.5">
+              <circle cx="12" cy="12" r="8.25" stroke="currentColor" stroke-width="1.6"></circle>
+              <path d="M12 8v4l2.5 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+            Próximas Palestras
+          </p>
+
+          <div id="featured-grid" class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {
+              featured.length > 0 ? (
+                featured.map(({ session, speaker }) =>
+                  speaker ? <SpeakerCard session={session} speaker={speaker} /> : null
+                )
+              ) : (
+                <p id="no-sessions-msg" class="col-span-full py-8 text-left text-sm text-[var(--text-secondary)]">
+                  Nenhuma palestra agendada para os próximos horários.
+                </p>
+              )
+            }
+          </div>
+        </section>
+      </>
+    )
+  }
+
+  <CTASection event={event} />
+  <Footer eventAtivo={event.eventoAtivo} />
+</Layout>
+
+<script>
+  function checkExpiredSessions() {
+    const cards = document.querySelectorAll('[data-session-card]');
+    const now = new Date();
+    let visibleCount = 0;
+
+    cards.forEach((card) => {
+      const el = card as HTMLElement;
+      const dateStr = el.dataset.date;
+      const timeEndStr = el.dataset.timeEnd;
+
+      if (dateStr && timeEndStr) {
+        const fullEndString = `${dateStr}T${timeEndStr.length === 5 ? timeEndStr + ':00' : timeEndStr}`;
+        const endTime = new Date(fullEndString);
+
+        if (now.getTime() >= endTime.getTime()) {
+          el.style.display = 'none';
+        } else {
+          visibleCount++;
+        }
+      }
+    });
+
+    const grid = document.getElementById('featured-grid');
+    if (grid && visibleCount === 0 && !document.getElementById('no-sessions-msg')) {
+      const msg = document.createElement('p');
+      msg.id = 'no-sessions-msg';
+      msg.className = 'col-span-full py-8 text-left text-sm text-[var(--text-secondary)]';
+      msg.textContent = 'Nenhuma palestra agendada para os próximos horários.';
+      grid.appendChild(msg);
+    }
+  }
+
+  checkExpiredSessions();
+  setInterval(checkExpiredSessions, 30000);
+</script>

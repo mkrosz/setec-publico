@@ -1,0 +1,50 @@
+---
+import '@/styles/global.css';
+import BottomNav from '@/components/BottomNav.astro';
+import SessionModal from '@/components/SessionModal.astro';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = 'Semana de Tecnologia — Edição XXXIII, FATEC Sorocaba.' } =
+  Astro.props;
+---
+
+<!doctype html>
+<html lang="pt-BR" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="/logo-mascote.png" />
+    <meta name="description" content={description} />
+    <title>{title}</title>
+  </head>
+  <body class="relative min-h-screen pb-24 selection:bg-accent">
+    <slot />
+
+    <SessionModal />
+    <BottomNav />
+
+    <script>
+      // Alterna entre tema escuro (padrão) e claro, persistindo a escolha.
+      const root = document.documentElement;
+      const stored = localStorage.getItem('setec-theme');
+      if (stored === 'light') {
+        root.classList.remove('dark');
+        root.classList.add('light');
+      }
+
+      function toggleTheme() {
+        const isLight = root.classList.toggle('light');
+        root.classList.toggle('dark', !isLight);
+        localStorage.setItem('setec-theme', isLight ? 'light' : 'dark');
+      }
+
+      document.querySelectorAll('[data-theme-toggle]').forEach((btn) => {
+        btn.addEventListener('click', toggleTheme);
+      });
+    </script>
+  </body>
+</html>

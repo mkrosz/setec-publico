@@ -1,0 +1,38 @@
+---
+import Logo from '@/components/Logo.astro';
+import { getEventInfo } from '@/lib/data';
+
+interface Props {
+  eventAtivo?: boolean;
+}
+
+const event = await getEventInfo();
+const { eventAtivo = event.eventoAtivo } = Astro.props;
+const currentYear = event.ano || new Date().getFullYear();
+---
+
+<footer class="mx-auto max-w-6xl px-6 pb-16 pt-10">
+  <div
+    class="flex flex-col items-center justify-between gap-6 border-t border-[var(--border-color)] pt-8 sm:flex-row"
+  >
+    <Logo />
+
+    <nav class="flex flex-wrap items-center justify-center gap-6 text-sm text-[var(--text-secondary)]">
+      <a href="/" class="hover:text-white transition-colors">Início</a>
+      {eventAtivo && <a href="/#palestrantes" class="hover:text-white transition-colors">Palestrantes</a>}
+      <a href={event.symplaUrl} target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors">Inscrição</a>
+      <a href={event.instagramUrl} target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors">Instagram</a>
+      <a href="/privacidade" class="hover:text-white transition-colors">Privacidade e Informações</a>
+      <a
+        href="/privacidade#apoio"
+        class="rounded-full border border-accent/40 bg-accent/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-accent transition-colors hover:bg-accent hover:text-black"
+      >
+        🤝 Seja um Apoiador
+      </a>
+    </nav>
+  </div>
+
+  <p class="mt-6 text-center text-xs text-[var(--text-secondary)] sm:text-right">
+    © {currentYear} SETEC {event.editionLabel}. Todos os direitos reservados.
+  </p>
+</footer>
