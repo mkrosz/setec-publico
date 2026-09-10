@@ -18,11 +18,11 @@ const currentYear = event.ano || new Date().getFullYear();
     <Logo />
 
     <nav class="flex flex-wrap items-center justify-center gap-6 text-sm text-[var(--text-secondary)]">
-      <a href="/" class="hover:text-white transition-colors">Início</a>
-      {eventAtivo && <a href="/#palestrantes" class="hover:text-white transition-colors">Palestrantes</a>}
-      <a href={event.symplaUrl} target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors">Inscrição</a>
-      <a href={event.instagramUrl} target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors">Instagram</a>
-      <a href="/privacidade" class="hover:text-white transition-colors">Privacidade e Informações</a>
+      <a href="/" class="hover:text-[var(--text-primary)] transition-colors">Início</a>
+      {eventAtivo && <a href="/#palestrantes" class="hover:text-[var(--text-primary)] transition-colors">Palestrantes</a>}
+      <a href={event.symplaUrl} target="_blank" rel="noopener noreferrer" class="hover:text-[var(--text-primary)] transition-colors">Inscrição</a>
+      <a href={event.instagramUrl} target="_blank" rel="noopener noreferrer" class="hover:text-[var(--text-primary)] transition-colors">Instagram</a>
+      <a href="/privacidade" class="hover:text-[var(--text-primary)] transition-colors">Privacidade e Informações</a>
       <a
         href="/privacidade#apoio"
         class="rounded-full border border-accent/40 bg-accent/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-accent transition-colors hover:bg-accent hover:text-black"

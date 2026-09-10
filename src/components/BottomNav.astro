@@ -167,12 +167,13 @@ const iconPaths: Record<NavIconName, string> = {
     const lightIcon = document.getElementById('theme-icon-light');
 
     function updateTheme(isLight: boolean) {
+      document.documentElement.classList.toggle('light', isLight);
+      document.documentElement.classList.toggle('dark', !isLight);
+
       if (isLight) {
-        document.documentElement.classList.add('light');
         darkIcon?.classList.add('hidden');
         lightIcon?.classList.remove('hidden');
       } else {
-        document.documentElement.classList.remove('light');
         darkIcon?.classList.remove('hidden');
         lightIcon?.classList.add('hidden');
       }
