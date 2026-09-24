@@ -1,4 +1,6 @@
 ---
+import { getEventInfo } from '@/lib/data';
+
 type NavIconName = 'home' | 'mic' | 'calendar';
 
 interface NavItem {
@@ -6,6 +8,8 @@ interface NavItem {
   href: string;
   icon: NavIconName;
 }
+
+const event = await getEventInfo();
 
 const navItems: NavItem[] = [
   { label: 'Início', href: '/', icon: 'home' },
@@ -64,9 +68,9 @@ const iconPaths: Record<NavIconName, string> = {
 
   <span class="mx-1 h-5 w-px bg-[var(--border-color)]" aria-hidden="true"></span>
 
-  <!-- Ícone Sympla -->
+  <!-- Ícone Sympla com URL dinâmica do banco -->
   <a
-    href="https://www.sympla.com.br"
+    href={event.symplaUrl}
     target="_blank"
     rel="noopener noreferrer"
     aria-label="Sympla"
@@ -83,9 +87,9 @@ const iconPaths: Record<NavIconName, string> = {
     </svg>
   </a>
 
-  <!-- Ícone Instagram -->
+  <!-- Ícone Instagram com URL dinâmica do banco -->
   <a
-    href="https://instagram.com/setecfatec"
+    href={event.instagramUrl}
     target="_blank"
     rel="noopener noreferrer"
     aria-label="Instagram"
