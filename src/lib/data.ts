@@ -9,19 +9,31 @@ const eventInfo: EventInfo = {
   socialHandle: '@SETEC.OFICIAL',
 };
 
-// Formata URLs do Supabase Storage
-function formatImageUrl(path: string | null | undefined): string {
-  if (!path) return '';
+// Formata uma URL individual do Supabase Storage
+function formatSingleImageUrl(path: string | null | undefined): string {
+  if (!path || typeof path !== 'string') return '';
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
 
   const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL ?? '';
   const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-  
+
   if (cleanPath.startsWith('storage/v1/object/public/')) {
     return `${supabaseUrl}/${cleanPath}`;
   }
-  
+
   return `${supabaseUrl}/storage/v1/object/public/setec-bucket/${cleanPath}`;
+}
+
+// Formata URLs do Supabase Storage (suporta string individual, array de strings, null ou undefined)
+function formatImageUrl(path: string | string[] | null | undefined): string[] {
+  if (!path) return [];
+
+  if (Array.isArray(path)) {
+    return path.map((p) => formatSingleImageUrl(p)).filter(Boolean);
+  }
+
+  const formatted = formatSingleImageUrl(path);
+  return formatted ? [formatted] : [];
 }
 
 // Remove os segundos da hora ("13:00:00" -> "13:00")
@@ -46,9 +58,9 @@ function formatDateLabel(rawDate: string | null | undefined): { dayId: string; d
       const year = parseInt(parts[0], 10);
       const month = parseInt(parts[1], 10) - 1;
       const day = parseInt(parts[2], 10);
-      
+
       const dateObj = new Date(Date.UTC(year, month, day));
-      
+
       const dayName = new Intl.DateTimeFormat('pt-BR', { weekday: 'long', timeZone: 'UTC' }).format(dateObj);
       const monthName = new Intl.DateTimeFormat('pt-BR', { month: 'long', timeZone: 'UTC' }).format(dateObj);
 
@@ -67,10 +79,10 @@ function formatDateLabel(rawDate: string | null | undefined): { dayId: string; d
   return { dayId: 'dia-1', dayLabel: rawDate, date: rawDate };
 }
 
-export async function getEventInfo(): Promise<EventInfo & { 
-  eventoAtivo: boolean; 
-  logoUrl?: string; 
-  symplaUrl?: string; 
+export async function getEventInfo(): Promise<EventInfo & {
+  eventoAtivo: boolean;
+  logoUrl?: string;
+  symplaUrl?: string;
   instagramUrl?: string;
   ano?: string;
 }> {
@@ -83,7 +95,6 @@ export async function getEventInfo(): Promise<EventInfo & {
   let ano = new Date().getFullYear().toString();
 
   if (supabase) {
-    // Adicionado cabeçalho no-store para forçar busca sem cache no Supabase
     let { data } = await supabase
       .from('event_config')
       .select('*', { head: false })
@@ -97,7 +108,7 @@ export async function getEventInfo(): Promise<EventInfo & {
 
     if (data) {
       if (typeof data.evento_ativo === 'boolean') eventoAtivo = data.evento_ativo;
-      if (data.logo_url) logoUrl = formatImageUrl(data.logo_url);
+      if (data.logo_url) logoUrl = formatSingleImageUrl(data.logo_url);
       if (data.sympla_url) symplaUrl = data.sympla_url;
       if (data.instagram_url) instagramUrl = data.instagram_url;
       if (data.edicao) edicao = data.edicao;
@@ -116,7 +127,7 @@ export async function getEventInfo(): Promise<EventInfo & {
     logoUrl,
     symplaUrl,
     instagramUrl,
-    ano
+    ano,
   };
 }
 
@@ -130,7 +141,6 @@ export async function getPartners(): Promise<Partner[]> {
 
   if (error || !data) return [];
 
-  // Mapeamento de prioridade para os níveis de patrocínio
   const levelPriority: Record<string, number> = {
     master: 1,
     diamond: 2,
@@ -139,7 +149,6 @@ export async function getPartners(): Promise<Partner[]> {
     gold: 5,
   };
 
-  // Ordena os patrocinadores de acordo com a hierarquia definida
   const sortedData = [...data].sort((a, b) => {
     const priorityA = levelPriority[a.nivel?.toLowerCase()?.trim()] ?? 99;
     const priorityB = levelPriority[b.nivel?.toLowerCase()?.trim()] ?? 99;
@@ -149,7 +158,7 @@ export async function getPartners(): Promise<Partner[]> {
   return sortedData.map((p) => ({
     id: String(p.id),
     name: p.nome_empresa || '',
-    logoUrl: formatImageUrl(p.logo_url),
+    logoUrl: formatSingleImageUrl(p.logo_url),
   })) as Partner[];
 }
 
@@ -166,7 +175,7 @@ export async function getSpeakers(): Promise<Speaker[]> {
     company: p.empresa || p.instituicao || '',
     photoUrl: formatImageUrl(p.foto_url),
     bio: p.sobre_palestrante || p.sobre || '',
-  })) as Speaker[];
+  })) as unknown as Speaker[];
 }
 
 export async function getSpeakerById(id: string): Promise<Speaker | undefined> {
@@ -206,34 +215,26 @@ export async function getSessions(): Promise<Session[]> {
 
 export async function getFeaturedSessions(): Promise<Session[]> {
   const allSessions = await getSessions();
-  
-  // Data e hora atual no momento do build/render
   const now = new Date();
 
-  // Filtra palestras cujo horário de término ainda não passou
   const upcomingSessions = allSessions.filter((s) => {
     if (!s.date || !s.timeEnd) return true;
 
     try {
-      // Concatena data e hora final (ex: "2026-10-08T13:40:00")
       const endTimeString = `${s.date}T${s.timeEnd.length === 5 ? s.timeEnd + ':00' : s.timeEnd}-03:00`;
       const sessionEndTime = new Date(endTimeString);
-
-      // Mantém apenas palestras cujo fim é maior que o momento atual
       return sessionEndTime.getTime() > now.getTime();
     } catch (e) {
       return true;
     }
   });
 
-  // Ordena por data e hora de início mais próxima
   upcomingSessions.sort((a, b) => {
     const timeA = new Date(`${a.date}T${a.timeStart}`).getTime();
     const timeB = new Date(`${b.date}T${b.timeStart}`).getTime();
     return timeA - timeB;
   });
 
-  // Retorna no máximo as 3 próximas palestras
   return upcomingSessions.slice(0, 3);
 }
 

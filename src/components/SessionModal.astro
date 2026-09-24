@@ -30,29 +30,18 @@ const sessionsWithSpeakers = await getAllSessionsWithSpeakers();
       class="absolute right-5 top-5 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border-color)] bg-white/10 dark:bg-white/10 text-[var(--text-secondary)] backdrop-blur-sm transition-colors hover:bg-white/20 hover:text-white"
     >
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-4 w-4">
-        <path
-          d="M6 6l12 12M18 6 6 18"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"></path>
+        <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
       </svg>
     </button>
 
     <!-- ROW 1: foto + título/nome/cargo/tags -->
     <div class="grid grid-cols-1 gap-6 p-6 pb-0 sm:grid-cols-[220px_1fr] sm:gap-8 sm:p-8 sm:pb-0">
-      <img
-        id="modal-photo"
-        src=""
-        alt=""
-        class="h-[220px] w-[220px] rounded-xl object-cover object-top border border-[var(--border-color)]"
-      />
+      <div id="modal-photo-container" class="relative h-[220px] w-[220px] overflow-hidden rounded-xl border border-[var(--border-color)]">
+        <!-- Fotos serão inseridas aqui dinamicamente -->
+      </div>
 
       <div>
-        <h2
-          id="modal-title"
-          class="font-display text-2xl font-bold uppercase leading-tight text-[var(--text-primary)] sm:text-3xl"
-        >
-        </h2>
+        <h2 id="modal-title" class="font-display text-2xl font-bold uppercase leading-tight text-[var(--text-primary)] sm:text-3xl"></h2>
 
         <p id="modal-speaker-name" class="mt-4 text-lg font-semibold text-[var(--text-primary)]"></p>
         <p id="modal-speaker-role" class="text-sm text-[var(--text-secondary)]"></p>
@@ -63,14 +52,10 @@ const sessionsWithSpeakers = await getAllSessionsWithSpeakers();
     </div>
 
     <!-- ROW 2: metadados -->
-    <div
-      class="mx-6 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-[var(--border-color)] py-5 text-sm text-[var(--text-secondary)] sm:mx-8"
-    >
+    <div class="mx-6 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-[var(--border-color)] py-5 text-sm text-[var(--text-secondary)] sm:mx-8">
       <span class="flex items-center gap-2">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-4 w-4 text-accent-soft">
-          <path
-            d="M7 3v3M17 3v3M4 8.5h16M5 5.5h14A1.5 1.5 0 0 1 20.5 7v12A1.5 1.5 0 0 1 19 20.5H5A1.5 1.5 0 0 1 3.5 19V7A1.5 1.5 0 0 1 5 5.5Z"
-            stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path>
+          <path d="M7 3v3M17 3v3M4 8.5h16M5 5.5h14A1.5 1.5 0 0 1 20.5 7v12A1.5 1.5 0 0 1 19 20.5H5A1.5 1.5 0 0 1 3.5 19V7A1.5 1.5 0 0 1 5 5.5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path>
         </svg>
         <span id="modal-date"></span>
       </span>
@@ -85,9 +70,7 @@ const sessionsWithSpeakers = await getAllSessionsWithSpeakers();
       <span class="text-white/25" aria-hidden="true">•</span>
       <span class="flex items-center gap-2">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-4 w-4 text-accent-soft">
-          <path
-            d="M12 21s7-6.1 7-11.5a7 7 0 1 0-14 0C5 14.9 12 21 12 21Z"
-            stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"></path>
+          <path d="M12 21s7-6.1 7-11.5a7 7 0 1 0-14 0C5 14.9 12 21 12 21Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"></path>
           <circle cx="12" cy="9.5" r="2.2" stroke="currentColor" stroke-width="1.6"></circle>
         </svg>
         <span id="modal-location"></span>
@@ -129,7 +112,7 @@ const sessionsWithSpeakers = await getAllSessionsWithSpeakers();
     name: string;
     role: string;
     company: string;
-    photoUrl: string;
+    photoUrl: string | string[];
     bio: string;
   }
   interface SessionData {
@@ -152,6 +135,7 @@ const sessionsWithSpeakers = await getAllSessionsWithSpeakers();
   const backdrop = document.getElementById('session-modal-backdrop');
   const closeBtn = document.getElementById('session-modal-close');
   const panel = document.getElementById('session-modal-panel');
+  let modalInterval: ReturnType<typeof setInterval> | null = null;
 
   function fillModal(session: SessionData) {
     const primary = session.speakers && session.speakers.length > 0 ? session.speakers[0] : null;
@@ -168,14 +152,11 @@ const sessionsWithSpeakers = await getAllSessionsWithSpeakers();
     document.getElementById('modal-title')!.textContent = session.title || '';
 
     // Nome do Palestrante
-    document.getElementById('modal-speaker-name')!.textContent = hasMultiple
-      ? 'Painelistas Convidados'
-      : (primary?.name || 'Palestrante Convidado');
+    document.getElementById('modal-speaker-name')!.textContent = session.speakers.map(s => s.name).join(', ') || 'Palestrante Convidado';
 
-    // Cargo e Empresa formatados sem arroba solto
     let roleCompany = '';
     if (hasMultiple) {
-      roleCompany = 'Diversas Empresas';
+      roleCompany = session.speakers.map(s => s.role || s.company).filter(Boolean).join(' • ');
     } else if (primary) {
       if (primary.role && primary.company) {
         roleCompany = `${primary.role} @ ${primary.company}`;
@@ -190,19 +171,47 @@ const sessionsWithSpeakers = await getAllSessionsWithSpeakers();
     document.getElementById('modal-time')!.textContent = `${session.timeStart || ''} - ${session.timeEnd || ''}`;
     document.getElementById('modal-location')!.textContent = session.location || '';
 
-    // Foto do Palestrante
-    const photo = document.getElementById('modal-photo') as HTMLImageElement;
-    photo.src = primary?.photoUrl || '';
-    photo.alt = primary?.name || session.title || '';
+    // Fotos Dinâmicas
+    const container = document.getElementById('modal-photo-container')!;
+    container.innerHTML = '';
+    if (modalInterval) clearInterval(modalInterval);
+
+    const allPhotos: string[] = session.speakers.flatMap((sp) =>
+      Array.isArray(sp.photoUrl) ? sp.photoUrl : sp.photoUrl ? [sp.photoUrl] : []
+    );
+
+    if (allPhotos.length === 0) {
+      container.innerHTML = `<div class="flex h-full w-full items-center justify-center bg-gray-800 text-xs text-white/50">Sem foto</div>`;
+    } else {
+      allPhotos.forEach((url, idx) => {
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = session.title;
+        img.className = `modal-slide-img absolute inset-0 h-full w-full object-cover object-top transition-opacity duration-700 ease-in-out ${idx === 0 ? 'opacity-100' : 'opacity-0'}`;
+        container.appendChild(img);
+      });
+
+      if (allPhotos.length > 1) {
+        let current = 0;
+        const slides = container.querySelectorAll<HTMLImageElement>('.modal-slide-img');
+        modalInterval = setInterval(() => {
+          slides[current].classList.remove('opacity-100');
+          slides[current].classList.add('opacity-0');
+
+          current = (current + 1) % slides.length;
+
+          slides[current].classList.remove('opacity-0');
+          slides[current].classList.add('opacity-100');
+        }, 3000);
+      }
+    }
 
     // Descrições
     document.getElementById('modal-description')!.textContent = session.description || '';
-    document.getElementById('modal-about-label')!.textContent = hasMultiple
-      ? 'os Palestrantes'
-      : 'o Palestrante';
+    document.getElementById('modal-about-label')!.textContent = hasMultiple ? 'os Palestrantes' : 'o Palestrante';
 
     document.getElementById('modal-bio')!.textContent = hasMultiple
-      ? session.speakers.map((s) => `${s.name} — ${s.role || ''} ${s.company ? `@ ${s.company}` : ''}.`).join(' ')
+      ? session.speakers.map((s) => `${s.name} — ${s.role || ''} ${s.company ? `@ ${s.company}` : ''}. ${s.bio || ''}`).join(' ')
       : (primary?.bio || 'Sem informações biográficas.');
   }
 
@@ -218,6 +227,7 @@ const sessionsWithSpeakers = await getAllSessionsWithSpeakers();
 
   function closeModal() {
     if (!modal) return;
+    if (modalInterval) clearInterval(modalInterval);
     modal.classList.add('hidden');
     modal.classList.remove('flex');
     modal.dataset.state = 'closed';

@@ -8,9 +8,14 @@ interface Props {
 }
 
 const { session, speakers, dayId = '' } = Astro.props;
+
+// Concatena todas as fotos dos palestrantes desta sessão
+const allPhotos: string[] = speakers.flatMap((sp) =>
+  Array.isArray(sp.photoUrl) ? sp.photoUrl : sp.photoUrl ? [sp.photoUrl] : []
+);
+
 const primary = speakers[0];
 const hasMultiple = speakers.length > 1;
-
 const badgeStyle = 'text-white/85 border-white/15 bg-black/40 backdrop-blur-sm';
 const resolvedDayId = String(dayId || session.dayId || '').toLowerCase().trim();
 ---
@@ -26,30 +31,21 @@ const resolvedDayId = String(dayId || session.dayId || '').toLowerCase().trim();
   data-session-trigger={session.id}
   class="group relative flex aspect-[3/4] w-full flex-col overflow-hidden rounded-2xl border border-white/5 text-left shadow-card transition-transform duration-300 hover:-translate-y-1 hover:border-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 >
-  {
-    hasMultiple ? (
-      <div class="absolute inset-0 flex items-center justify-center bg-base-800">
-        {speakers.slice(0, 2).map((sp, i) => (
-          <img
-            src={sp.photoUrl}
-            alt={sp.name}
-            loading="lazy"
-            class:list={[
-              'h-16 w-16 rounded-full border-2 border-base-850 object-cover',
-              i === 1 ? '-ml-4' : '',
-            ]}
-          />
-        ))}
-      </div>
-    ) : (
-      <img
-        src={primary?.photoUrl}
-        alt={primary?.name}
-        loading="lazy"
-        class="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
-      />
-    )
-  }
+  <div class="slideshow-container absolute inset-0 h-full w-full">
+    {
+      allPhotos.map((url, idx) => (
+        <img
+          src={url}
+          alt={primary?.name || session.title}
+          loading="lazy"
+          class:list={[
+            'session-slide-img absolute inset-0 h-full w-full object-cover object-top transition-opacity duration-700 ease-in-out group-hover:scale-105',
+            idx === 0 ? 'opacity-100' : 'opacity-0',
+          ]}
+        />
+      ))
+    }
+  </div>
 
   <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/5" aria-hidden="true"></div>
 
@@ -75,18 +71,35 @@ const resolvedDayId = String(dayId || session.dayId || '').toLowerCase().trim();
         <p class="text-xs text-white/50">{hasMultiple ? 'Diversas Empresas' : primary?.role}</p>
       </div>
       <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/15 bg-black/20 text-white/70 backdrop-blur-sm transition-colors group-hover:border-accent group-hover:text-accent" aria-hidden="true">
-        {
-          hasMultiple ? (
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-3.5 w-3.5">
-              <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-            </svg>
-          ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-3.5 w-3.5">
-              <path d="M7 17 17 7M17 7H9M17 7v8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-          )
-        }
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-3.5 w-3.5">
+          <path d="M7 17 17 7M17 7H9M17 7v8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
       </span>
     </div>
   </div>
 </button>
+
+<script>
+  function setupSessionCardSlideshows() {
+    const cards = document.querySelectorAll('[data-session-card]');
+
+    cards.forEach((card) => {
+      const slides = card.querySelectorAll<HTMLImageElement>('.session-slide-img');
+      if (slides.length <= 1) return;
+
+      let current = 0;
+      setInterval(() => {
+        slides[current].classList.remove('opacity-100');
+        slides[current].classList.add('opacity-0');
+
+        current = (current + 1) % slides.length;
+
+        slides[current].classList.remove('opacity-0');
+        slides[current].classList.add('opacity-100');
+      }, 3000);
+    });
+  }
+
+  setupSessionCardSlideshows();
+  document.addEventListener('astro:page-load', setupSessionCardSlideshows);
+</script>
