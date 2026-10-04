@@ -57,9 +57,9 @@ const { event } = Astro.props;
     </div>
 
     {/* Coluna Direita: Datas e Redes Sociais */}
-    <div class="flex flex-col gap-5">
+    <div class="flex h-full flex-col gap-5">
       {/* Card de Datas Vindas do Dashboard */}
-      <div class="rounded-xl border border-[var(--border-color)] bg-[var(--card-bg)] p-6">
+      <div class="flex-1 rounded-xl border border-[var(--border-color)] bg-[var(--card-bg)] p-6">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="mb-4 h-7 w-7 text-accent-soft">
           <path
             d="M7 3v3M17 3v3M4 8.5h16M5 5.5h14A1.5 1.5 0 0 1 20.5 7v12A1.5 1.5 0 0 1 19 20.5H5A1.5 1.5 0 0 1 3.5 19V7A1.5 1.5 0 0 1 5 5.5Z"
@@ -73,7 +73,7 @@ const { event } = Astro.props;
       </div>
 
       {/* Card do Instagram vindo do Dashboard */}
-      <div class="relative overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--card-bg)] p-6">
+      <div class="relative flex-1 overflow-hidden rounded-xl border border-[var(--border-color)] bg-[var(--card-bg)] p-6">
         <img
           src="/logo-mascote.png"
           alt=""
@@ -84,7 +84,7 @@ const { event } = Astro.props;
         <div class="relative">
           <span class="mb-4 block text-2xl font-medium leading-none text-accent-soft">@</span>
           <h3 class="font-display text-xl font-normal text-[var(--text-primary)]">Siga nas Redes</h3>
-          <p class="mt-2 text-sm text-[var(--text-secondary)]">Acompanhe a cobertura do evento.</p>
+          <p class="mt-2 text-sm text-[var(--text-secondary)]">Acompanhe todo evento.</p>
           <a 
             href={event.instagramUrl} 
             target="_blank" 

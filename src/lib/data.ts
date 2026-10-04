@@ -1,5 +1,28 @@
 import { supabase } from './supabaseClient';
-import type { EventInfo, Partner, Session, Speaker } from './types';
+import type { EventInfo, Partner, Session, SessionLink, SessionLinkType, Speaker } from './types';
+
+const VALID_LINK_TYPES: SessionLinkType[] = [
+  'linkedin', 'site', 'instagram', 'github', 'facebook', 'twitter', 'youtube',
+];
+
+function parseLinks(raw: unknown): SessionLink[] {
+  if (!Array.isArray(raw)) return [];
+
+  return raw.flatMap((item) => {
+    if (!item || typeof item !== 'object') return [];
+    const { type, label, url } = item as Record<string, unknown>;
+    const cleanUrl = typeof url === 'string' ? url.trim() : '';
+
+    if (!VALID_LINK_TYPES.includes(type as SessionLinkType)) return [];
+    if (!/^https?:\/\//i.test(cleanUrl)) return [];
+
+    return [{
+      type: type as SessionLinkType,
+      label: typeof label === 'string' ? label.trim() : '',
+      url: cleanUrl,
+    }];
+  });
+}
 
 const eventInfo: EventInfo = {
   editionLabel: 'Edição XXXIII',
@@ -155,17 +178,19 @@ export async function getPartners(): Promise<Partner[]> {
     return priorityA - priorityB;
   });
 
-  return sortedData.map((p) => ({
+   return sortedData.map((p) => ({
     id: String(p.id),
     name: p.nome_empresa || '',
     logoUrl: formatSingleImageUrl(p.logo_url),
+    tier: p.nivel ? String(p.nivel).trim().toUpperCase() : undefined,
   })) as Partner[];
 }
 
 export async function getSpeakers(): Promise<Speaker[]> {
   if (!supabase) return [];
 
-  const { data: palestrasData } = await supabase.from('palestras').select('*');
+  const { data: palestrasData } = await supabase.from('palestras').select('*').eq('rascunho', false);
+
   if (!palestrasData) return [];
 
   return palestrasData.map((p) => ({
@@ -187,7 +212,7 @@ export async function getSpeakerById(id: string): Promise<Speaker | undefined> {
 export async function getSessions(): Promise<Session[]> {
   if (!supabase) return [];
 
-  const { data, error } = await supabase.from('palestras').select('*');
+  const { data, error } = await supabase.from('palestras').select('*').eq('rascunho', false);
   if (error || !data) return [];
 
   return data.map((s) => {
@@ -209,6 +234,7 @@ export async function getSessions(): Promise<Session[]> {
       highlightNumber: s.highlight_number,
       speakerIds: [`sp-${s.id}`],
       editionTag: s.edition_tag || 'SETEC XXXIII',
+      links: parseLinks(s.links),
     };
   }) as Session[];
 }
@@ -258,17 +284,28 @@ export async function getSessionsGroupedByDay(): Promise<
     }
     map.get(session.dayId)!.sessions.push(session);
   }
-  return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
+  const days = Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
+
+  // Ordena as sessões de cada dia pelo horário de início (depois pelo de término)
+  for (const day of days) {
+    day.sessions.sort(
+      (a, b) =>
+        a.timeStart.localeCompare(b.timeStart) || a.timeEnd.localeCompare(b.timeEnd)
+    );
+  }
+
+  return days;
 }
 
 export async function getSessionWithSpeakers(sessionId: string) {
   if (!supabase) return undefined;
 
   const { data: p } = await supabase
-    .from('palestras')
-    .select('*')
-    .eq('id', sessionId)
-    .maybeSingle();
+  .from('palestras')
+  .select('*')
+  .eq('id', sessionId)
+  .eq('rascunho', false)
+  .maybeSingle();
 
   if (!p) return undefined;
 
@@ -290,6 +327,8 @@ export async function getSessionWithSpeakers(sessionId: string) {
     highlightNumber: p.highlight_number,
     speakerIds: [`sp-${p.id}`],
     editionTag: p.edition_tag || 'SETEC XXXIII',
+    links: parseLinks(p.links),
+
   };
 
   const speakerObj: Speaker = {

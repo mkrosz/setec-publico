@@ -1,5 +1,5 @@
 ---
-import type { Partner } from '@/lib/types';
+import type { Partner, PartnerTier } from '@/lib/types';
 
 interface Props {
   partners: Partner[];
@@ -7,8 +7,49 @@ interface Props {
 
 const { partners = [] } = Astro.props;
 
+// Ordem de destaque: do maior para o menor
+const TIER_ORDER: PartnerTier[] = ['MASTER', 'DIAMOND', 'TITANIUM', 'PLATINUM', 'GOLD'];
+
+// Tamanho da logo e estilo do badge por cota
+const TIER_STYLES: Record<PartnerTier, { img: string; badge: string }> = {
+  MASTER: {
+    img: 'h-16 max-w-[260px] sm:h-24',
+    badge: 'bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white',
+  },
+  DIAMOND: {
+    img: 'h-14 max-w-[220px] sm:h-20',
+    badge: 'bg-gradient-to-r from-cyan-400 to-sky-500 text-white',
+  },
+  TITANIUM: {
+    img: 'h-12 max-w-[190px] sm:h-16',
+    badge: 'bg-gradient-to-r from-slate-400 to-slate-600 text-white',
+  },
+  PLATINUM: {
+    img: 'h-10 max-w-[160px] sm:h-14',
+    badge: 'bg-gradient-to-r from-zinc-200 to-zinc-400 text-zinc-900',
+  },
+  GOLD: {
+    img: 'h-8 max-w-[130px] sm:h-10',
+    badge: 'bg-gradient-to-r from-amber-300 to-yellow-500 text-amber-950',
+  },
+};
+
+function getTier(partner: Partner): PartnerTier | null {
+  const normalized = String(partner.tier ?? '').trim().toUpperCase();
+  return TIER_ORDER.find((t) => t === normalized) ?? null;
+}
+
+const validPartners = partners
+  .filter((p) => Boolean(p.logoUrl))
+  .map((p) => ({ partner: p, tier: getTier(p) }))
+  // Ordena por cota; parceiros sem cota reconhecida vão para o final
+  .sort((a, b) => {
+    const ai = a.tier ? TIER_ORDER.indexOf(a.tier) : TIER_ORDER.length;
+    const bi = b.tier ? TIER_ORDER.indexOf(b.tier) : TIER_ORDER.length;
+    return ai - bi;
+  });
+
 // Duplica a lista para dar efeito de scroll infinito contínuo no marquee.
-const validPartners = partners.filter((p) => Boolean(p.logoUrl));
 const loopedPartners =
   validPartners.length > 0
     ? [...validPartners, ...validPartners, ...validPartners, ...validPartners]
@@ -17,28 +58,38 @@ const loopedPartners =
 
 {
   loopedPartners.length > 0 && (
-    <section class="relative z-0 -mt-14 border-y border-[var(--border-color)] bg-[#0d1015] [.light_&]:bg-[#f7f7f7] pb-8 pt-20 sm:-mt-20 sm:pt-24">
-      <p class="mb-6 text-center text-xs font-medium uppercase tracking-[0.25em] text-[var(--text-secondary)] opacity-60">
+    <section class="relative z-0 -mt-14 border-y border-[var(--border-color)] bg-[#0d1015] [.light_&]:bg-[#f7f7f7] pb-4 pt-20 sm:-mt-20 sm:pt-24">
+      <p class="mb-1 text-center text-xs font-medium uppercase tracking-[0.25em] text-[var(--text-secondary)] opacity-60">
         Colaboradores &amp; Parceiros do Evento
       </p>
 
-      <div class="relative overflow-hidden py-4">
+      <div class="relative overflow-hidden py-3">
         {/* Degradê lateral para suavizar a entrada e saída das logos */}
         <div class="pointer-events-none absolute inset-y-0 left-0 z-10 w-20 bg-gradient-to-r from-[#0d1015] [.light_&]:from-[#f7f7f7] to-transparent sm:w-32" aria-hidden="true"></div>
         <div class="pointer-events-none absolute inset-y-0 right-0 z-10 w-20 bg-gradient-to-l from-[#0d1015] [.light_&]:from-[#f7f7f7] to-transparent sm:w-32" aria-hidden="true"></div>
 
-        <div class="flex w-max animate-marquee items-center gap-16 px-4 pr-16">
+        <div class="flex w-max animate-marquee items-end gap-16 px-4 pr-16">
           {
-            loopedPartners.map((partner) => (
-              <div class="flex items-center justify-center p-2 opacity-80 transition-transform duration-300 hover:scale-150 hover:opacity-100">
-                <img
-                  src={partner.logoUrl}
-                  alt={partner.name || 'Logo do patrocinador'}
-                  class="h-8 w-auto max-w-[150px] object-contain sm:h-10"
-                  loading="lazy"
-                />
-              </div>
-            ))
+            loopedPartners.map(({ partner, tier }) => {
+              const styles = TIER_STYLES[tier ?? 'GOLD'];
+              return (
+                <div class="flex flex-col items-center justify-center gap-2 p-1 opacity-80 transition-transform duration-300 hover:scale-110 hover:opacity-100">
+                  <img
+                    src={partner.logoUrl}
+                    alt={partner.name || 'Logo do patrocinador'}
+                    class={`w-auto object-contain ${styles.img}`}
+                    loading="lazy"
+                  />
+                  {tier && (
+                    <span
+                      class={`rounded-full px-3 py-0.5 text-[10px] font-bold uppercase tracking-widest ${styles.badge}`}
+                    >
+                      {tier}
+                    </span>
+                  )}
+                </div>
+              );
+            })
           }
         </div>
       </div>

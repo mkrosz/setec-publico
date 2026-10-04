@@ -19,15 +19,17 @@ const sessionsWithSpeakers = await getAllSessionsWithSpeakers();
   >
   </div>
 
-  <div
-    id="session-modal-panel"
-    class="relative z-10 max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-[var(--border-color)] bg-[#111113] [.light_&]:bg-white shadow-2xl animate-scaleIn"
-  >
+  <div class="relative z-10 w-full max-w-3xl animate-scaleIn">
+    <div
+      id="session-modal-panel"
+      class="relative max-h-[calc(100vh-7rem)] w-full overflow-y-auto rounded-2xl border border-[var(--border-color)] bg-[#111113] [.light_&]:bg-white shadow-2xl xl:max-h-[90vh]"
+    >
+
     <button
       type="button"
       id="session-modal-close"
       aria-label="Fechar"
-      class="absolute right-5 top-5 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border-color)] bg-white/10 dark:bg-white/10 text-[var(--text-secondary)] backdrop-blur-sm transition-colors hover:bg-white/20 hover:text-white"
+      class="absolute right-5 top-5 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border-color)] bg-white/10 text-[var(--text-secondary)] backdrop-blur-sm transition-colors hover:bg-white/20 [.light_&]:bg-black/5 [.light_&]:hover:bg-black/10"
     >
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-4 w-4">
         <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
@@ -52,7 +54,7 @@ const sessionsWithSpeakers = await getAllSessionsWithSpeakers();
     </div>
 
     <!-- ROW 2: metadados -->
-    <div class="mx-6 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-[var(--border-color)] py-5 text-sm text-[var(--text-secondary)] sm:mx-8">
+    <div class="mx-6 flex flex-wrap items-center gap-x-3 gap-y-2 py-5 text-sm text-[var(--text-secondary)] sm:mx-8">
       <span class="flex items-center gap-2">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-4 w-4 text-accent-soft">
           <path d="M7 3v3M17 3v3M4 8.5h16M5 5.5h14A1.5 1.5 0 0 1 20.5 7v12A1.5 1.5 0 0 1 19 20.5H5A1.5 1.5 0 0 1 3.5 19V7A1.5 1.5 0 0 1 5 5.5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path>
@@ -102,6 +104,12 @@ const sessionsWithSpeakers = await getAllSessionsWithSpeakers();
       </div>
     </div>
   </div>
+  <!-- Links: ao lado do modal no desktop, abaixo dele em telas menores -->
+  <div
+    id="modal-links"
+    class="mt-3 flex flex-wrap justify-center gap-2 xl:absolute xl:left-full xl:top-6 xl:ml-3 xl:mt-0 xl:flex-col xl:items-start xl:justify-start"
+  ></div>
+</div>
 </div>
 
 <script type="application/json" id="sessions-data" set:html={JSON.stringify(sessionsWithSpeakers)}></script>
@@ -127,6 +135,15 @@ const sessionsWithSpeakers = await getAllSessionsWithSpeakers();
     description: string;
     speakers: SpeakerData[];
   }
+    interface LinkData {
+    type: string;
+    url: string;
+  }
+  interface SessionData {
+    // ...campos existentes
+    speakers: SpeakerData[];
+    links?: LinkData[];
+  }
 
   const dataEl = document.getElementById('sessions-data');
   const sessions: SessionData[] = dataEl ? JSON.parse(dataEl.textContent || '[]') : [];
@@ -136,6 +153,71 @@ const sessionsWithSpeakers = await getAllSessionsWithSpeakers();
   const closeBtn = document.getElementById('session-modal-close');
   const panel = document.getElementById('session-modal-panel');
   let modalInterval: ReturnType<typeof setInterval> | null = null;
+
+  const ICON_BASE =
+  'xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"';
+
+  const LINK_META: Record<string, { name: string; icon: string }> = {
+    linkedin: {
+      name: 'LinkedIn',
+      icon: `<svg ${ICON_BASE}><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>`,
+    },
+    instagram: {
+      name: 'Instagram',
+      icon: `<svg ${ICON_BASE}><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>`,
+    },
+    github: {
+      name: 'GitHub',
+      icon: `<svg ${ICON_BASE}><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>`,
+    },
+    facebook: {
+      name: 'Facebook',
+      icon: `<svg ${ICON_BASE}><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>`,
+    },
+    twitter: {
+      name: 'X / Twitter',
+      icon: `<svg ${ICON_BASE}><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/></svg>`,
+    },
+    youtube: {
+      name: 'YouTube',
+      icon: `<svg ${ICON_BASE}><path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17"/><path d="m10 15 5-3-5-3z"/></svg>`,
+    },
+    site: {
+      name: 'Site',
+      icon: `<svg ${ICON_BASE}><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>`,
+    },
+  };
+
+  function renderLinks(links: LinkData[] = []) {
+    const container = document.getElementById('modal-links');
+    if (!container) return;
+    container.innerHTML = '';
+
+    links.forEach((link) => {
+      const meta = LINK_META[link.type] ?? LINK_META.site;
+      const text = meta.name;
+
+      const a = document.createElement('a');
+      a.href = link.url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.title = text;
+      a.setAttribute('aria-label', text);
+      a.className =
+        'group flex h-11 max-w-11 items-center overflow-hidden rounded-xl border border-white/15 bg-[#111113] text-white/80 shadow-lg transition-[max-width,border-color] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:max-w-[160px] hover:border-white/30 focus-visible:max-w-[160px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 [.light_&]:border-black/10 [.light_&]:bg-white [.light_&]:text-slate-700 [.light_&]:hover:border-black/25 [.light_&]:focus-visible:ring-black/30';
+
+      const iconBox = document.createElement('span');
+      iconBox.className = 'flex h-11 w-11 shrink-0 items-center justify-center';
+      iconBox.innerHTML = meta.icon; // SVG fixo definido acima, não vem do banco
+
+      const label = document.createElement('span');
+      label.className = 'whitespace-nowrap pr-4 text-sm font-medium';
+      label.textContent = text; // textContent evita injeção de HTML vinda do rótulo
+
+      a.append(iconBox, label);
+      container.appendChild(a);
+    });
+  }
 
   function fillModal(session: SessionData) {
     const primary = session.speakers && session.speakers.length > 0 ? session.speakers[0] : null;
@@ -150,6 +232,9 @@ const sessionsWithSpeakers = await getAllSessionsWithSpeakers();
 
     // Título da Palestra
     document.getElementById('modal-title')!.textContent = session.title || '';
+
+    // Links (redes sociais / sites)
+    renderLinks(session.links);
 
     // Nome do Palestrante
     document.getElementById('modal-speaker-name')!.textContent = session.speakers.map(s => s.name).join(', ') || 'Palestrante Convidado';
@@ -250,3 +335,33 @@ const sessionsWithSpeakers = await getAllSessionsWithSpeakers();
     if (e.key === 'Escape' && modal?.dataset.state === 'open') closeModal();
   });
 </script>
+
+<style>
+  /* Barra de rolagem do modal: arredondada e afastada dos cantos */
+  #session-modal-panel::-webkit-scrollbar {
+    width: 14px;
+  }
+  #session-modal-panel::-webkit-scrollbar-track {
+    background: transparent;
+    /* maior que o raio do canto (rounded-2xl = 1.25rem) para a barra não encostar nas curvas */
+    margin-block: 22px;
+  }
+  #session-modal-panel::-webkit-scrollbar-thumb {
+    background-color: rgba(148, 163, 184, 0.55);
+    border-radius: 999px;
+    /* a borda transparente cria a folga lateral, deixando o thumb mais fino e afastado da borda */
+    border: 4px solid transparent;
+    background-clip: padding-box;
+  }
+  #session-modal-panel::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(148, 163, 184, 0.85);
+  }
+
+  /* Firefox não suporta margem na trilha, então usa a versão fina padrão */
+  @supports not selector(::-webkit-scrollbar) {
+    #session-modal-panel {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(148, 163, 184, 0.6) transparent;
+    }
+  }
+</style>

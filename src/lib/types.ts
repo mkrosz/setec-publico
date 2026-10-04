@@ -11,6 +11,22 @@ export interface Speaker {
   bio: string;
 }
 
+
+export type SessionLinkType =
+  | 'linkedin'
+  | 'site'
+  | 'instagram'
+  | 'github'
+  | 'facebook'
+  | 'twitter'
+  | 'youtube';
+
+export interface SessionLink {
+  type: SessionLinkType;
+  label: string;
+  url: string;
+}
+
 export type SessionCategory =
   | 'KEYNOTE'
   | 'WORKSHOP'
@@ -34,11 +50,16 @@ export interface Session {
   highlightNumber?: string; // ex: "#01" para a home
   speakerIds: string[];
   editionTag: string; // ex: "SETEC XXXIII"
+  links?: SessionLink[];
 }
+
+export type PartnerTier = 'MASTER' | 'DIAMOND' | 'TITANIUM' | 'PLATINUM' | 'GOLD';
 
 export interface Partner {
   id: string;
   name: string;
+  logoUrl: string;
+  tier?: PartnerTier;
 }
 
 export interface EventInfo {

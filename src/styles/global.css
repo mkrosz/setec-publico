@@ -1,6 +1,63 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+/* darkMode: 'class' */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* colors */
+  --color-base-950: #07060b;
+  --color-base-900: #0b0a12;
+  --color-base-850: #0f0e18;
+  --color-base-800: #141220;
+  --color-base-700: #1c1a2b;
+  --color-base-600: #2a2740;
+
+  --color-accent: #a855f7;
+  --color-accent-pink: #e879f9;
+  --color-accent-soft: #c4b5fd;
+
+  /* fontFamily */
+  --font-display: "Space Grotesk", Poppins, system-ui, sans-serif;
+  --font-sans: Inter, system-ui, sans-serif;
+
+  /* boxShadow */
+  --shadow-glow: 0 0 60px -15px rgba(168, 85, 247, 0.55);
+  --shadow-card: 0 8px 30px -10px rgba(0, 0, 0, 0.6);
+  --shadow-nav: 0 10px 40px -8px rgba(0, 0, 0, 0.7);
+
+  /* borderRadius */
+  --radius-2xl: 1.25rem;
+  --radius-3xl: 1.75rem;
+
+  /* animation + keyframes */
+  --animate-marquee: marquee 28s linear infinite;
+  --animate-fadeIn: fadeIn 0.2s ease-out;
+  --animate-scaleIn: scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+
+  @keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  @keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  @keyframes scaleIn {
+    0% { opacity: 0; transform: scale(0.96) translateY(8px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+  }
+}
+
+/* backgroundImage */
+@utility bg-hero-gradient {
+  background-image: radial-gradient(120% 100% at 20% 0%, #3b1866 0%, #1a0f2e 40%, #07060b 75%);
+}
+
+@utility bg-card-sheen {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0) 40%);
+}
+
+/* ===== Seu CSS original ===== */
 
 :root {
   color-scheme: dark;
@@ -26,7 +83,6 @@ html.light {
   --nav-active-text: #ffffff;
 }
 
-
 html {
   scroll-behavior: smooth;
 }
@@ -34,13 +90,12 @@ html {
 body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  font-family: theme('fontFamily.sans');
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
 
-
 ::selection {
-  background: theme('colors.accent.DEFAULT');
+  background: var(--color-accent);
   color: white;
 }
 
@@ -52,7 +107,7 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: theme('colors.base.600');
+  background: var(--color-base-600);
   border-radius: 999px;
 }
 
