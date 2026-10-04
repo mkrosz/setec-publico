@@ -8,9 +8,6 @@ importers:
 
   .:
     dependencies:
-      '@astrojs/compiler-binding-win32-x64-msvc':
-        specifier: ^0.5.1
-        version: 0.5.1
       '@astrojs/vercel':
         specifier: ^11.0.10
         version: 11.0.11(astro@7.3.5(@vercel/functions@3.9.9)(jiti@1.21.7))
@@ -1997,7 +1994,8 @@ snapshots:
   '@astrojs/compiler-binding-win32-arm64-msvc@0.5.1':
     optional: true
 
-  '@astrojs/compiler-binding-win32-x64-msvc@0.5.1': {}
+  '@astrojs/compiler-binding-win32-x64-msvc@0.5.1':
+    optional: true
 
   '@astrojs/compiler-binding@0.5.1':
     optionalDependencies:
