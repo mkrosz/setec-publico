@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import type { EventInfo, Partner, Session, SessionLink, SessionLinkType, Speaker } from './types';
+import type { CommissionMember, CommissionGroup, EventInfo, Partner, Session, SessionLink, SessionLinkType, Speaker } from './types';
 
 const VALID_LINK_TYPES: SessionLinkType[] = [
   'linkedin', 'site', 'instagram', 'github', 'facebook', 'twitter', 'youtube',
@@ -184,6 +184,28 @@ export async function getPartners(): Promise<Partner[]> {
     logoUrl: formatSingleImageUrl(p.logo_url),
     tier: p.nivel ? String(p.nivel).trim().toUpperCase() : undefined,
   })) as Partner[];
+}
+
+const COMMISSION_GROUPS: CommissionGroup[] = ['professor', '4ano', '5ano'];
+
+export async function getCommission(): Promise<CommissionMember[]> {
+  if (!supabase) return [];
+
+ const { data, error } = await supabase
+    .from('comissao_publica')
+    .select('id, nome, email, grupo')
+    .order('nome', { ascending: true });
+
+  if (error || !data) return [];
+
+  return data
+    .filter((m) => COMMISSION_GROUPS.includes(m.grupo))
+    .map((m) => ({
+      id: String(m.id),
+      name: m.nome || '',
+      email: m.email || undefined,
+      group: m.grupo as CommissionGroup,
+    }));
 }
 
 export async function getSpeakers(): Promise<Speaker[]> {

@@ -69,3 +69,12 @@ export interface EventInfo {
   dateRangeDescription: string;
   socialHandle: string;
 }
+
+export type CommissionGroup = 'professor' | '4ano' | '5ano';
+
+export interface CommissionMember {
+  id: string;
+  name: string;
+  email?: string;
+  group: CommissionGroup;
+}

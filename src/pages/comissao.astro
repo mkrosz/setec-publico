@@ -1,0 +1,87 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import Footer from '@/components/Footer.astro';
+import Logo from '@/components/Logo.astro';
+import { getCommission, getEventInfo } from '@/lib/data';
+import type { CommissionGroup } from '@/lib/types';
+
+const event = await getEventInfo();
+const members = await getCommission();
+
+const GROUPS: { id: CommissionGroup; title: string }[] = [
+  { id: 'professor', title: 'Professores' },
+  { id: '4ano', title: '4º Ano' },
+  { id: '5ano', title: '5º Ano' },
+];
+
+const sections = GROUPS.map((g) => ({
+  ...g,
+  members: members.filter((m) => m.group === g.id),
+})).filter((g) => g.members.length > 0);
+---
+
+<Layout title="Comissão — SETEC XXXIII">
+  <header class="mx-auto max-w-4xl px-6 pt-10">
+    <div class="mb-8 flex items-center justify-between">
+      <a
+        href="/"
+        class="inline-flex items-center gap-2 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-4 w-4">
+          <path d="M15 19 8 12l7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+        Voltar para o Início
+      </a>
+      <Logo />
+    </div>
+
+    <h1 class="font-display text-3xl font-bold uppercase leading-tight text-[var(--text-primary)] sm:text-5xl">
+      Comissão<br />Organizadora
+    </h1>
+    <p class="mt-4 text-sm text-[var(--text-secondary)] sm:text-base">
+      Conheça as pessoas que tornam a SETEC possível.
+    </p>
+  </header>
+
+  <main class="mx-auto max-w-4xl px-6 py-12 text-[var(--text-primary)]">
+    {
+      sections.length === 0 ? (
+        <div class="rounded-2xl border border-[var(--border-color)] bg-[var(--card-bg)] px-6 py-12 text-center">
+          <p class="text-base font-medium text-[var(--text-primary)]">
+            A comissão ainda não foi atualizada.
+          </p>
+          <p class="mt-2 text-sm text-[var(--text-secondary)]">
+            Volte em breve para conhecer os membros desta edição.
+          </p>
+        </div>
+      ) : (
+        <div class="divide-y divide-[var(--border-color)]">
+          {sections.map((section) => (
+            <section class="py-10 first:pt-0">
+              <h2 class="mb-5 font-display text-xl font-bold uppercase tracking-wide text-accent">
+                {section.title}
+              </h2>
+              <ul class="grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2">
+                {section.members.map((member) => (
+                  <li class="text-sm sm:text-base">
+                    <span class="text-[var(--text-primary)]">{member.name}</span>
+                    {member.email && (
+                    <a
+                        href={`mailto:${member.email}`}
+                        class="block text-xs text-accent hover:underline sm:text-sm"
+                    >
+                        {member.email}
+                    </a>
+                    )}
+                </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
+      )
+    }
+  </main>
+
+  <Footer eventAtivo={event.eventoAtivo} />
+</Layout>
