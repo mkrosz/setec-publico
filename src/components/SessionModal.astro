@@ -188,6 +188,38 @@ const sessionsWithSpeakers = await getAllSessionsWithSpeakers();
     },
   };
 
+  // Extrai uma legenda curta da URL: nome do perfil (redes) ou domínio (sites)
+  function getLinkHandle(type: string, rawUrl: string): string {
+    try {
+      const url = new URL(rawUrl);
+      const host = url.hostname.replace(/^www\./i, '');
+      const parts = url.pathname.split('/').filter(Boolean);
+
+      if (type === 'site') return host;
+
+      let handle = '';
+      if (type === 'linkedin') {
+        // /in/nome-do-perfil ou /company/nome-da-empresa
+        const i = parts.findIndex((p) => ['in', 'company', 'school'].includes(p));
+        handle = i >= 0 ? (parts[i + 1] ?? '') : (parts[0] ?? '');
+      } else if (type === 'youtube') {
+        // /@canal, /c/canal, /channel/id, /user/nome
+        handle = parts[0]?.startsWith('@') ? parts[0] : (parts[1] ?? parts[0] ?? '');
+      } else {
+        // instagram, github, facebook, twitter: primeiro trecho do caminho
+        handle = parts[0] ?? '';
+      }
+
+      handle = decodeURIComponent(handle).replace(/^@/, '');
+      if (!handle) return '';
+
+      const comArroba = ['instagram', 'twitter', 'youtube'].includes(type);
+      return comArroba ? `@${handle}` : handle;
+    } catch {
+      return '';
+    }
+  }
+
   function renderLinks(links: LinkData[] = []) {
     const container = document.getElementById('modal-links');
     if (!container) return;
@@ -195,26 +227,47 @@ const sessionsWithSpeakers = await getAllSessionsWithSpeakers();
 
     links.forEach((link) => {
       const meta = LINK_META[link.type] ?? LINK_META.site;
-      const text = meta.name;
+      const handle = getLinkHandle(link.type, link.url);
+      const accessibleName = handle ? `${meta.name}: ${handle}` : meta.name;
 
       const a = document.createElement('a');
       a.href = link.url;
       a.target = '_blank';
       a.rel = 'noopener noreferrer';
-      a.title = text;
-      a.setAttribute('aria-label', text);
+      a.title = link.url; // tooltip sempre mostra a URL completa
+      a.setAttribute('aria-label', accessibleName);
       a.className =
-        'group flex h-11 max-w-11 items-center overflow-hidden rounded-xl border border-white/15 bg-[#111113] text-white/80 shadow-lg transition-[max-width,border-color] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:max-w-[160px] hover:border-white/30 focus-visible:max-w-[160px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 [.light_&]:border-black/10 [.light_&]:bg-white [.light_&]:text-slate-700 [.light_&]:hover:border-black/25 [.light_&]:focus-visible:ring-black/30';
+        'link-chip group flex h-11 items-center overflow-hidden rounded-xl border border-white/15 bg-[#111113] text-white/80 shadow-lg transition-colors duration-300 hover:border-white/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 [.light_&]:border-black/10 [.light_&]:bg-white [.light_&]:text-slate-700 [.light_&]:hover:border-black/25 [.light_&]:focus-visible:ring-black/30';
 
       const iconBox = document.createElement('span');
       iconBox.className = 'flex h-11 w-11 shrink-0 items-center justify-center';
       iconBox.innerHTML = meta.icon; // SVG fixo definido acima, não vem do banco
 
-      const label = document.createElement('span');
-      label.className = 'whitespace-nowrap pr-4 text-sm font-medium';
-      label.textContent = text; // textContent evita injeção de HTML vinda do rótulo
+      // Estrutura da animação: reveal (grid 0fr → 1fr) > clip (corta) > text (conteúdo real)
+      const reveal = document.createElement('span');
+      reveal.className = 'link-reveal';
 
-      a.append(iconBox, label);
+      const clip = document.createElement('span');
+      clip.className = 'link-clip';
+
+      const text = document.createElement('span');
+      text.className = 'link-text flex flex-col justify-center pr-4 leading-tight';
+
+      const name = document.createElement('span');
+      name.className = 'whitespace-nowrap text-sm font-medium';
+      name.textContent = meta.name;
+      text.append(name);
+
+      if (handle) {
+        const sub = document.createElement('span');
+        sub.className = 'mt-0.5 truncate text-[11px] text-white/50 [.light_&]:text-slate-500';
+        sub.textContent = handle; // textContent evita injeção de HTML
+        text.append(sub);
+      }
+
+      clip.append(text);
+      reveal.append(clip);
+      a.append(iconBox, reveal);
       container.appendChild(a);
     });
   }
@@ -340,6 +393,47 @@ const sessionsWithSpeakers = await getAllSessionsWithSpeakers();
   /* Barra de rolagem do modal: arredondada e afastada dos cantos */
   #session-modal-panel::-webkit-scrollbar {
     width: 14px;
+  }
+
+    /* ---------- Links do modal ---------- */
+
+  /* Largura máxima do texto: abaixo do modal (telas menores) */
+  #modal-links {
+    --link-text-max: min(280px, calc(100vw - 7rem));
+  }
+
+  /* Ao lado do modal (xl): espaço livre à direita do modal,
+     descontando margem, ícone, padding e uma folga */
+  @media (min-width: 1280px) {
+    #modal-links {
+      --link-text-max: calc((100vw - 48rem) / 2 - 6rem);
+    }
+  }
+
+  /* Anima até a largura exata do conteúdo, sem limite fixo */
+  #modal-links :global(.link-reveal) {
+    display: grid;
+    grid-template-columns: 0fr;
+    transition: grid-template-columns 500ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  #modal-links :global(.link-chip:hover .link-reveal),
+  #modal-links :global(.link-chip:focus-visible .link-reveal) {
+    grid-template-columns: 1fr;
+  }
+  #modal-links :global(.link-clip) {
+    min-width: 0;
+    overflow: hidden;
+  }
+  #modal-links :global(.link-text) {
+    width: max-content;
+    max-width: var(--link-text-max);
+  }
+
+    @media (min-width: 1280px) {
+    #modal-links {
+      --link-text-max: calc((100vw - 48rem) / 2 - 6rem);
+      width: max-content;
+    }
   }
   #session-modal-panel::-webkit-scrollbar-track {
     background: transparent;
