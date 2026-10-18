@@ -3,9 +3,11 @@ import type { EventInfo } from '@/lib/types';
 
 interface Props {
   event: EventInfo;
+  /** Há minicursos publicados? Sem minicursos, o texto e o botão "Ver minicursos" não aparecem. */
+  temMinicursos?: boolean;
 }
 
-const { event } = Astro.props;
+const { event, temMinicursos = false } = Astro.props;
 ---
 
 <section class="mx-auto max-w-6xl px-6 py-10">
@@ -31,8 +33,9 @@ const { event } = Astro.props;
         </h2>
 
         <p class="mt-4 max-w-md text-sm text-[var(--text-secondary)] sm:text-base">
-          As inscrições para as palestras são feitas pelo Sympla. Os minicursos têm vagas limitadas e a
-          inscrição é feita direto na programação.
+          {temMinicursos
+            ? 'As inscrições para as palestras são feitas pelo Sympla. Os minicursos têm vagas limitadas e a inscrição é feita direto na programação.'
+            : 'As inscrições para as palestras são feitas pelo Sympla.'}
         </p>
       </div>
 
@@ -58,7 +61,7 @@ const { event } = Astro.props;
                 </svg>
               </a>
             )}
-            {event.eventoAtivo && (
+            {event.eventoAtivo && temMinicursos && (
               <a
                 href="/programacao?tipo=minicurso"
                 class="inline-flex w-fit items-center gap-2 rounded-full border border-[var(--border-color)] px-6 py-3 text-sm font-semibold uppercase tracking-wide text-[var(--text-primary)] transition-colors hover:border-accent"

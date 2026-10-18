@@ -141,6 +141,12 @@ body.modal-open {
   }
 }
 
+/* Chips dentro do conteúdo do modal (minicurso): largura limitada à coluna */
+.link-chips.link-chips-inline {
+  --link-text-max: 220px;
+  width: auto;
+}
+
 /* Anima até a largura exata do conteúdo, sem limite fixo */
 .link-chips .link-reveal {
   display: grid;

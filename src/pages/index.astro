@@ -115,6 +115,6 @@ const pageTitle = event.editionShort ? `Semana de Tecnologia — SETEC ${event.e
     )
   }
 
-  <CTASection event={event} />
+  <CTASection event={event} temMinicursos={minicursos.length > 0} />
   <Footer event={event} />
 </Layout>
