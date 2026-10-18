@@ -37,7 +37,7 @@ const statusLabel =
   data-period={periodOf(minicurso.timeStart)}
   data-title={minicurso.title.toLowerCase()}
   data-speakers={minicurso.speakers.map((sp) => sp.name.toLowerCase()).join(' ')}
-  class="group relative flex aspect-[3/4] w-full flex-col overflow-hidden rounded-2xl border-2 border-accent/60 text-left shadow-[0_0_0_1px_rgba(168,85,247,0.15),0_18px_50px_-12px_rgba(168,85,247,0.45)] transition-transform duration-300 hover:-translate-y-1 hover:border-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+  class="group relative flex aspect-[3/4] w-full flex-col overflow-hidden rounded-2xl border-2 border-accent/70 text-left shadow-[0_12px_32px_-16px_rgba(168,85,247,0.18)] transition-[transform,border-color,box-shadow] duration-300 hover:-translate-y-1 hover:border-accent hover:shadow-[0_16px_40px_-14px_rgba(168,85,247,0.32)] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 >
   <div class="absolute inset-0 h-full w-full bg-gradient-to-br from-accent/30 via-[#151520] to-[#0b0b10]">
     {
