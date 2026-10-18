@@ -1,15 +1,20 @@
 ---
 import '@/styles/global.css';
 import BottomNav from '@/components/BottomNav.astro';
-import SessionModal from '@/components/SessionModal.astro';
+import { getEventInfo } from '@/lib/data';
+import type { EventInfo } from '@/lib/types';
 
 interface Props {
   title: string;
   description?: string;
+  /** Dados do evento já carregados pela página (evita consultar de novo). */
+  event?: EventInfo;
 }
 
-const { title, description = 'Semana de Tecnologia — Edição XXXIII, FATEC Sorocaba.' } =
-  Astro.props;
+const event = Astro.props.event ?? (await getEventInfo());
+const defaultDescription =
+  ['Semana de Tecnologia', event.editionLabel, event.institution].filter(Boolean).join(' — ') + '.';
+const { title, description = defaultDescription } = Astro.props;
 ---
 
 <!doctype html>
@@ -17,6 +22,26 @@ const { title, description = 'Semana de Tecnologia — Edição XXXIII, FATEC So
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Tema antes da pintura: padrão escuro; 'setec-theme' guarda a escolha (migra a chave antiga 'theme') -->
+    <script is:inline>
+      (function () {
+        var root = document.documentElement;
+        var theme = null;
+        try {
+          theme = localStorage.getItem('setec-theme');
+          var old = localStorage.getItem('theme');
+          if (!theme && (old === 'light' || old === 'dark')) {
+            theme = old;
+            localStorage.setItem('setec-theme', old);
+          }
+          if (old !== null) localStorage.removeItem('theme');
+        } catch (e) {}
+        if (theme === 'light') {
+          root.classList.remove('dark');
+          root.classList.add('light');
+        }
+      })();
+    </script>
     <link rel="icon" type="image/png" href="/logo-mascote.png" />
     <meta name="description" content={description} />
     <title>{title}</title>
@@ -30,27 +55,6 @@ const { title, description = 'Semana de Tecnologia — Edição XXXIII, FATEC So
   <body class="relative min-h-screen pb-24 selection:bg-accent">
     <slot />
 
-    <SessionModal />
-    <BottomNav />
-
-    <script>
-      // Alterna entre tema escuro (padrão) e claro, persistindo a escolha.
-      const root = document.documentElement;
-      const stored = localStorage.getItem('setec-theme');
-      if (stored === 'light') {
-        root.classList.remove('dark');
-        root.classList.add('light');
-      }
-
-      function toggleTheme() {
-        const isLight = root.classList.toggle('light');
-        root.classList.toggle('dark', !isLight);
-        localStorage.setItem('setec-theme', isLight ? 'light' : 'dark');
-      }
-
-      document.querySelectorAll('[data-theme-toggle]').forEach((btn) => {
-        btn.addEventListener('click', toggleTheme);
-      });
-    </script>
+    <BottomNav event={event} />
   </body>
 </html>

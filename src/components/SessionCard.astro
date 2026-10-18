@@ -1,18 +1,23 @@
 ---
 import type { Session, Speaker } from '@/lib/types';
+import SpeakerAvatars from '@/components/SpeakerAvatars.astro';
+import { joinNames, speakerPhotos } from '@/lib/speakers';
+import { periodOf } from '@/lib/periods';
+import { scheduleLabel } from '@/lib/dates';
 
 interface Props {
   session: Session;
   speakers: Speaker[];
   dayId?: string;
+  /** Mostra o dia junto do horário (ex.: "5 out • 13:30 - 14:15"), usado na home. */
+  showDay?: boolean;
 }
 
-const { session, speakers, dayId = '' } = Astro.props;
+const { session, speakers, dayId = '', showDay = false } = Astro.props;
+const schedule = scheduleLabel(session, showDay);
 
 // Concatena todas as fotos dos palestrantes desta sessão
-const allPhotos: string[] = speakers.flatMap((sp) =>
-  Array.isArray(sp.photoUrl) ? sp.photoUrl : sp.photoUrl ? [sp.photoUrl] : []
-);
+const allPhotos: string[] = speakers.flatMap(speakerPhotos);
 
 const primary = speakers[0];
 const hasMultiple = speakers.length > 1;
@@ -23,9 +28,11 @@ const resolvedDayId = String(dayId || session.dayId || '').toLowerCase().trim();
 <button
   type="button"
   data-session-card
+  data-tipo="palestra"
   data-session-id={session.id}
   data-day-id={resolvedDayId}
   data-category={session.category.toLowerCase().trim()}
+  data-period={periodOf(session.timeStart)}
   data-title={session.title.toLowerCase()}
   data-speakers={speakers.map((sp) => sp.name.toLowerCase()).join(' ')}
   data-session-trigger={session.id}
@@ -36,7 +43,7 @@ const resolvedDayId = String(dayId || session.dayId || '').toLowerCase().trim();
       allPhotos.map((url, idx) => (
         <img
           src={url}
-          alt={primary?.name || session.title}
+          alt=""
           loading="lazy"
           class:list={[
             'session-slide-img absolute inset-0 h-full w-full object-cover object-top transition-opacity duration-700 ease-in-out group-hover:scale-105',
@@ -54,22 +61,38 @@ const resolvedDayId = String(dayId || session.dayId || '').toLowerCase().trim();
       #{session.category}
     </span>
   </div>
-  <span class="absolute right-4 top-4 rounded-full border border-white/15 bg-black/40 px-2.5 py-1 text-[11px] font-medium text-white/80 backdrop-blur-sm">
-    {session.timeStart} - {session.timeEnd}
-  </span>
+  {
+    schedule && (
+      <span class="absolute right-4 top-4 rounded-full border border-white/15 bg-black/40 px-2.5 py-1 text-[11px] font-medium text-white/80 backdrop-blur-sm">
+        {schedule}
+      </span>
+    )
+  }
 
   <div class="relative mt-auto flex flex-col gap-3 p-5">
     <h3 class="font-display text-base font-semibold leading-snug text-white sm:text-lg">
       {session.title}
     </h3>
 
-    <div class="flex items-center justify-between border-t border-white/15 pt-4">
-      <div>
-        <p class="text-sm font-medium text-white/80">
-          {hasMultiple ? 'Painelistas Convidados' : primary?.name}
-        </p>
-        <p class="text-xs text-white/50">{hasMultiple ? 'Diversas Empresas' : primary?.role}</p>
-      </div>
+    <div class="flex items-center justify-between gap-3 border-t border-white/15 pt-4">
+      {
+        hasMultiple ? (
+          <div class="flex min-w-0 items-center gap-3">
+            <SpeakerAvatars speakers={speakers} />
+            <div class="min-w-0">
+              <p class="line-clamp-2 text-sm font-medium leading-snug text-white/80">
+                {joinNames(speakers.map((sp) => sp.name))}
+              </p>
+              <p class="text-xs text-white/50">{speakers.length} palestrantes</p>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <p class="text-sm font-medium text-white/80">{primary?.name}</p>
+            <p class="text-xs text-white/50">{primary?.role}</p>
+          </div>
+        )
+      }
       <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/15 bg-black/20 text-white/70 backdrop-blur-sm transition-colors group-hover:border-accent group-hover:text-accent" aria-hidden="true">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-3.5 w-3.5">
           <path d="M7 17 17 7M17 7H9M17 7v8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />

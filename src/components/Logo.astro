@@ -1,10 +1,22 @@
 ---
 import { getEventInfo } from '@/lib/data';
+import type { EventInfo } from '@/lib/types';
 
-const event = await getEventInfo();
+interface Props {
+  event?: EventInfo;
+  /** Classes extras; quando informada, substitui o display padrão (inline-flex). */
+  class?: string;
+}
+
+const { class: className } = Astro.props;
+const event = Astro.props.event ?? (await getEventInfo());
 ---
 
-<a href="/" class="inline-flex items-center gap-3 transition-opacity hover:opacity-90">
+<a
+  href="/"
+  aria-label="SETEC — página inicial"
+  class:list={['items-center gap-3 transition-opacity hover:opacity-90', className || 'inline-flex']}
+>
   {
     event.logoUrl ? (
       <img
@@ -16,7 +28,9 @@ const event = await getEventInfo();
       <div class="font-display leading-tight">
         <span class="block text-[9px] tracking-[0.22em] text-[var(--text-secondary)]">SEMANA DE</span>
         <span class="block text-base font-extrabold text-[var(--text-primary)]">TECNOLOGIA</span>
-        <span class="block text-[9px] tracking-[0.2em] text-accent">{event.editionLabel}</span>
+        {event.editionLabel && (
+          <span class="block text-[9px] tracking-[0.2em] text-accent [.light_&]:text-violet-700">{event.editionLabel}</span>
+        )}
       </div>
     )
   }

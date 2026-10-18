@@ -3,7 +3,12 @@ import Layout from '@/layouts/Layout.astro';
 import Footer from '@/components/Footer.astro';
 import Logo from '@/components/Logo.astro';
 import SessionCard from '@/components/SessionCard.astro';
-import { getEventInfo, getSessionsGroupedByDay, getSpeakers } from '@/lib/data';
+import MinicursoCard from '@/components/MinicursoCard.astro';
+import MinicursoModal from '@/components/MinicursoModal.astro';
+import SessionModal from '@/components/SessionModal.astro';
+import { getEventInfo, getMinicursos, getSessionsGroupedByDay, getSessionsWithSpeakers, getTurmas } from '@/lib/data';
+import type { Minicurso, SessionWithSpeakers } from '@/lib/types';
+import { PERIODS, periodOf } from '@/lib/periods';
 
 const event = await getEventInfo();
 
@@ -12,30 +17,71 @@ if (!event.eventoAtivo) {
   return Astro.redirect('/');
 }
 
-const groupedDays = await getSessionsGroupedByDay();
-const allSpeakers = await getSpeakers();
+// Uma consulta para as palestras (já com palestrantes), usada pelos cards e pelo modal
+const [sessions, minicursos, turmas] = await Promise.all([
+  getSessionsWithSpeakers(),
+  getMinicursos(),
+  getTurmas(),
+]);
+const groupedDays = await getSessionsGroupedByDay(sessions);
 
-function resolveSpeakers(speakerIds: string[]) {
-  return allSpeakers.filter((sp) => speakerIds.includes(sp.id));
+type Item =
+  | { tipo: 'palestra'; timeStart: string; session: SessionWithSpeakers }
+  | { tipo: 'minicurso'; timeStart: string; minicurso: Minicurso };
+
+// Palestras e minicursos juntos, por dia e em ordem de horário
+const dias = new Map<string, { dayId: string; dayLabel: string; date: string; itens: Item[] }>();
+const dia = (dayId: string, dayLabel: string, date: string) => {
+  if (!dias.has(dayId)) dias.set(dayId, { dayId, dayLabel, date, itens: [] });
+  return dias.get(dayId)!;
+};
+for (const d of groupedDays) {
+  for (const session of d.sessions) {
+    dia(d.dayId, d.dayLabel, d.date).itens.push({ tipo: 'palestra', timeStart: session.timeStart, session });
+  }
 }
+for (const m of minicursos) {
+  dia(m.date ? m.dayId : 'sem-data', m.date ? m.dayLabel : 'Data a definir', m.date || '9999').itens.push({
+    tipo: 'minicurso',
+    timeStart: m.timeStart,
+    minicurso: m,
+  });
+}
+const programacao = Array.from(dias.values()).sort((a, b) => a.date.localeCompare(b.date));
+for (const d of programacao) d.itens.sort((a, b) => a.timeStart.localeCompare(b.timeStart));
 
 const allSessions = groupedDays.flatMap((day) => day.sessions);
-const categories = Array.from(new Set(allSessions.map((s) => s.category))).sort();
+const categories = Array.from(
+  new Set([...allSessions.map((s) => s.category), ...minicursos.map((m) => m.category)]),
+).sort();
 
-const eventDaysList = groupedDays.map((day) => {
-  const parts = day.dayLabel.split(',');
-  const dayName = parts[0]?.trim().slice(0, 3).toUpperCase() || 'DIA';
-  const dayNumber = parts[1]?.trim().match(/\d+/)?.[0] || '';
+// Só mostra os períodos que têm alguma palestra ou minicurso
+const usedPeriods = new Set(
+  [...allSessions.map((s) => s.timeStart), ...minicursos.map((m) => m.timeStart)].map(periodOf),
+);
+const periods = PERIODS.filter((p) => usedPeriods.has(p.id));
 
-  return {
-    dayId: day.dayId.toLowerCase().trim(),
-    label: dayName,
-    dateNum: dayNumber,
-  };
-});
+const tipos = [
+  { id: 'palestra', label: 'Palestras', total: allSessions.length },
+  { id: 'minicurso', label: 'Minicursos', total: minicursos.length },
+].filter((t) => t.total > 0);
+
+const eventDaysList = programacao
+  .filter((day) => day.date !== '9999')
+  .map((day) => {
+    const parts = day.dayLabel.split(',');
+    const dayName = parts[0]?.trim().slice(0, 3).toUpperCase() || 'DIA';
+    const dayNumber = parts[1]?.trim().match(/\d+/)?.[0] || '';
+
+    return {
+      dayId: day.dayId.toLowerCase().trim(),
+      label: dayName,
+      dateNum: dayNumber,
+    };
+  });
 ---
 
-<Layout title="Programação Completa — SETEC XXXIII">
+<Layout title={`Programação — ${event.siteName}`} event={event}>
   <header class="mx-auto max-w-6xl px-6 pt-10">
     <div class="mb-10 flex items-center justify-between">
       <a
@@ -52,13 +98,13 @@ const eventDaysList = groupedDays.map((day) => {
         </svg>
         Voltar para o Início
       </a>
-      <Logo class="hidden sm:flex" />
+      <Logo class="hidden sm:flex" event={event} />
     </div>
 
     <span
       class="mb-6 inline-flex items-center rounded-full border border-[var(--border-color)] bg-[var(--card-bg)] px-4 py-1.5 text-xs font-medium uppercase tracking-widest text-[var(--text-secondary)]"
     >
-      {event.editionLabel} • {event.institution}
+      {[event.editionLabel, event.institution].filter(Boolean).join(' • ')}
     </span>
 
     <h1 class="font-display text-4xl font-bold uppercase leading-[0.95] text-[var(--text-primary)] sm:text-6xl">
@@ -66,15 +112,16 @@ const eventDaysList = groupedDays.map((day) => {
     </h1>
 
     <p class="mt-6 max-w-xl text-sm text-[var(--text-secondary)] sm:text-base">
-      Explore as palestras, workshops e painéis da Semana de Tecnologia. Planeje sua jornada
-      cibernética.
+      Explore as palestras e os minicursos da Semana de Tecnologia e monte a sua agenda.
     </p>
 
     <!-- Barra Unificada de Pesquisa e Filtros -->
+    {programacao.length > 0 && (
     <div class="relative mt-8 flex items-center gap-3">
       <div class="relative flex-1">
         <svg
           xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
           class="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-secondary)]"
           fill="none"
           viewBox="0 0 24 24"
@@ -89,7 +136,8 @@ const eventDaysList = groupedDays.map((day) => {
         <input
           type="text"
           id="search-input"
-          placeholder="Pesquisar palestra ou palestrante..."
+          aria-label="Pesquisar na programação"
+          placeholder="Pesquisar palestra, minicurso ou palestrante..."
           class="w-full rounded-full border border-[var(--border-color)] bg-[var(--card-bg)] py-2.5 pl-11 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-secondary)] backdrop-blur-md transition-all focus:border-[var(--border-color)] focus:bg-[var(--card-bg)] focus:outline-none"
         />
       </div>
@@ -98,18 +146,23 @@ const eventDaysList = groupedDays.map((day) => {
         <button
           type="button"
           id="filter-dropdown-btn"
+          aria-expanded="false"
+          aria-controls="filter-menu"
+          aria-haspopup="true"
           class="flex items-center gap-2 rounded-full border border-[var(--border-color)] bg-[var(--card-bg)] px-5 py-2.5 text-xs font-medium text-[var(--text-primary)] backdrop-blur-md transition-all hover:border-[var(--border-color)] hover:bg-[var(--card-bg)] hover:text-[var(--text-primary)] cursor-pointer"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="h-4 w-4 text-[var(--text-secondary)]">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="h-4 w-4 text-[var(--text-secondary)]" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" />
           </svg>
           <span>Filtros</span>
-          <span id="active-filter-badge" class="hidden h-2 w-2 rounded-full bg-accent"></span>
+          <span id="active-filter-badge" class="hidden h-2 w-2 rounded-full bg-accent" aria-hidden="true"></span>
         </button>
 
         <!-- Dropdown Menu de Filtros -->
         <div
           id="filter-menu"
+          role="region"
+          aria-label="Filtros da programação"
           class="hidden absolute right-0 z-50 mt-2 w-80 sm:w-96 rounded-2xl border border-[var(--border-color)] bg-[var(--nav-bg)] p-5 shadow-2xl backdrop-blur-2xl"
         >
           <div class="mb-4 flex items-center justify-between border-b border-[var(--border-color)] pb-3">
@@ -129,6 +182,7 @@ const eventDaysList = groupedDays.map((day) => {
                     <button
                       type="button"
                       data-cal-day={d.dayId}
+                      aria-pressed="false"
                       class="cal-day-btn flex min-w-[60px] flex-1 flex-col items-center justify-center rounded-2xl border border-[var(--border-color)] bg-[var(--card-bg)] py-3 transition-all hover:border-[var(--border-color)] hover:bg-[var(--card-bg)] cursor-pointer [&.active]:border-[var(--nav-active-bg)] [&.active]:bg-[var(--nav-active-bg)] [&.active]:text-[var(--nav-active-text)]"
                     >
                       <span class="text-[10px] uppercase font-medium opacity-70">{d.label}</span>
@@ -138,6 +192,53 @@ const eventDaysList = groupedDays.map((day) => {
                 }
               </div>
             </div>
+
+            <!-- Tipo: palestra ou minicurso -->
+            {tipos.length > 1 && (
+              <div>
+                <span class="mb-3 block text-[11px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">
+                  Tipo
+                </span>
+                <div class="flex flex-wrap gap-2 text-center">
+                  {
+                    tipos.map((t) => (
+                      <button
+                        type="button"
+                        data-tipo-btn={t.id}
+                      aria-pressed="false"
+                        class="tipo-btn flex min-w-[80px] flex-1 items-center justify-center gap-2 rounded-2xl border border-[var(--border-color)] bg-[var(--card-bg)] px-3 py-2.5 text-sm font-bold text-[var(--text-primary)] transition-all cursor-pointer [&.active]:border-[var(--nav-active-bg)] [&.active]:bg-[var(--nav-active-bg)] [&.active]:text-[var(--nav-active-text)]"
+                      >
+                        {t.label}
+                        <span class="text-xs font-medium opacity-60">{t.total}</span>
+                      </button>
+                    ))
+                  }
+                </div>
+              </div>
+            )}
+
+            <!-- Período (pelo horário de início) -->
+            {periods.length > 0 && (
+              <div>
+                <span class="mb-3 block text-[11px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">
+                  Período
+                </span>
+                <div class="flex flex-wrap gap-2 text-center">
+                  {
+                    periods.map((p) => (
+                      <button
+                        type="button"
+                        data-period-btn={p.id}
+                      aria-pressed="false"
+                        class="period-btn min-w-[80px] flex-1 rounded-2xl border border-[var(--border-color)] bg-[var(--card-bg)] px-3 py-2.5 text-sm font-bold text-[var(--text-primary)] transition-all cursor-pointer [&.active]:border-[var(--nav-active-bg)] [&.active]:bg-[var(--nav-active-bg)] [&.active]:text-[var(--nav-active-text)]"
+                      >
+                        {p.label}
+                      </button>
+                    ))
+                  }
+                </div>
+              </div>
+            )}
 
             <!-- Área do Conhecimento -->
             <div>
@@ -150,6 +251,7 @@ const eventDaysList = groupedDays.map((day) => {
                     <button
                       type="button"
                       data-tag-btn={category.toLowerCase()}
+                      aria-pressed="false"
                       class="tag-filter-btn rounded-full border border-[var(--border-color)] bg-[var(--card-bg)] px-3 py-1 text-xs text-[var(--text-secondary)] transition-all hover:border-[var(--border-color)] hover:text-[var(--text-primary)] cursor-pointer [&.active]:border-[var(--nav-active-bg)] [&.active]:bg-[var(--nav-active-bg)] [&.active]:text-[var(--nav-active-text)] [&.active]:font-semibold"
                     >
                       #{category}
@@ -162,15 +264,22 @@ const eventDaysList = groupedDays.map((day) => {
         </div>
       </div>
     </div>
+    )}
   </header>
 
   <main class="mx-auto max-w-6xl px-6 py-14">
-    <div id="no-results" class="hidden py-12 text-center">
-      <p class="text-lg font-medium text-[var(--text-secondary)]">Nenhuma sessão encontrada para os critérios selecionados.</p>
+    {programacao.length === 0 && (
+      <div class="rounded-2xl border border-[var(--border-color)] bg-[var(--card-bg)] px-6 py-12 text-center">
+        <p class="text-base font-medium text-[var(--text-primary)]">A programação ainda não foi divulgada. Volte em breve!</p>
+      </div>
+    )}
+
+    <div id="no-results" class="hidden py-12 text-center" role="status">
+      <p class="text-lg font-medium text-[var(--text-secondary)]">Nenhuma palestra ou minicurso encontrado para os filtros selecionados.</p>
     </div>
 
     {
-      groupedDays.map((day) => {
+      programacao.map((day) => {
         const cleanDayId = day.dayId.toLowerCase().trim();
         return (
           <section class="mb-16 day-section" data-section-day={cleanDayId}>
@@ -180,9 +289,17 @@ const eventDaysList = groupedDays.map((day) => {
             </h2>
 
             <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {day.sessions.map((session) => (
-                <SessionCard session={session} speakers={resolveSpeakers(session.speakerIds)} dayId={cleanDayId} />
-              ))}
+              {day.itens.map((item) =>
+                item.tipo === 'palestra' ? (
+                  <SessionCard
+                    session={item.session}
+                    speakers={item.session.speakers}
+                    dayId={cleanDayId}
+                  />
+                ) : (
+                  <MinicursoCard minicurso={item.minicurso} dayId={cleanDayId} />
+                ),
+              )}
             </div>
           </section>
         );
@@ -190,7 +307,9 @@ const eventDaysList = groupedDays.map((day) => {
     }
   </main>
 
-  <Footer />
+  <SessionModal sessions={sessions} editionTag={event.siteName} />
+  <MinicursoModal minicursos={minicursos} turmas={turmas} />
+  <Footer event={event} />
 </Layout>
 
 <script>
@@ -202,22 +321,45 @@ const eventDaysList = groupedDays.map((day) => {
     const clearAllBtn = document.getElementById('clear-all-filters-btn');
     const calDayBtns = document.querySelectorAll<HTMLButtonElement>('.cal-day-btn');
     const tagBtns = document.querySelectorAll<HTMLButtonElement>('.tag-filter-btn');
+    const periodBtns = document.querySelectorAll<HTMLButtonElement>('.period-btn');
+    const tipoBtns = document.querySelectorAll<HTMLButtonElement>('.tipo-btn');
     const daySections = document.querySelectorAll<HTMLElement>('.day-section');
     const noResults = document.getElementById('no-results');
 
     const selectedDays = new Set<string>();
     const selectedCategories = new Set<string>();
+    const selectedPeriods = new Set<string>();
+    const selectedTipos = new Set<string>();
+
+    // Botões de filtro: classe "active" (visual) + aria-pressed (leitores de tela)
+    const setPressed = (btn: HTMLElement, on: boolean) => {
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-pressed', String(on));
+    };
 
     if (filterBtn && filterMenu) {
+      const setMenuOpen = (open: boolean) => {
+        filterMenu.classList.toggle('hidden', !open);
+        filterBtn.setAttribute('aria-expanded', String(open));
+      };
+
       filterBtn.onclick = (e) => {
         e.stopPropagation();
-        filterMenu.classList.toggle('hidden');
+        setMenuOpen(filterMenu.classList.contains('hidden'));
       };
 
       document.addEventListener('click', (e) => {
         if (!filterMenu.contains(e.target as Node) && !filterBtn.contains(e.target as Node)) {
-          filterMenu.classList.add('hidden');
+          setMenuOpen(false);
         }
+      });
+
+      // Esc fecha o painel de filtros e devolve o foco ao botão
+      document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape' || filterMenu.classList.contains('hidden')) return;
+        if (document.body.classList.contains('modal-open')) return;
+        setMenuOpen(false);
+        filterBtn.focus();
       });
     }
 
@@ -225,7 +367,7 @@ const eventDaysList = groupedDays.map((day) => {
       const query = searchInput?.value.toLowerCase().trim() || '';
       let visibleCardsTotal = 0;
 
-      const hasFilterActive = selectedDays.size > 0 || selectedCategories.size > 0 || query !== '';
+      const hasFilterActive = selectedDays.size > 0 || selectedCategories.size > 0 || selectedPeriods.size > 0 || selectedTipos.size > 0 || query !== '';
 
       if (activeBadge) {
         if (hasFilterActive) {
@@ -246,11 +388,15 @@ const eventDaysList = groupedDays.map((day) => {
           const title = (card.getAttribute('data-title') || '').toLowerCase();
           const speakers = (card.getAttribute('data-speakers') || '').toLowerCase();
           const category = (card.getAttribute('data-category') || '').toLowerCase().trim();
+          const period = card.getAttribute('data-period') || '';
+          const tipo = card.getAttribute('data-tipo') || 'palestra';
 
           const matchesQuery = !query || title.includes(query) || speakers.includes(query);
           const matchesCategory = selectedCategories.size === 0 || selectedCategories.has(category);
+          const matchesPeriod = selectedPeriods.size === 0 || selectedPeriods.has(period);
+          const matchesTipo = selectedTipos.size === 0 || selectedTipos.has(tipo);
 
-          if (matchesDay && matchesQuery && matchesCategory) {
+          if (matchesDay && matchesQuery && matchesCategory && matchesPeriod && matchesTipo) {
             card.classList.remove('hidden');
             sectionVisibleCards++;
             visibleCardsTotal++;
@@ -285,10 +431,10 @@ const eventDaysList = groupedDays.map((day) => {
 
         if (selectedDays.has(dayId)) {
           selectedDays.delete(dayId);
-          btn.classList.remove('active');
+          setPressed(btn, false);
         } else {
           selectedDays.add(dayId);
-          btn.classList.add('active');
+          setPressed(btn, true);
         }
         applyFilters();
       });
@@ -302,23 +448,70 @@ const eventDaysList = groupedDays.map((day) => {
 
         if (selectedCategories.has(tag)) {
           selectedCategories.delete(tag);
-          btn.classList.remove('active');
+          setPressed(btn, false);
         } else {
           selectedCategories.add(tag);
-          btn.classList.add('active');
+          setPressed(btn, true);
         }
         applyFilters();
       });
     });
 
+    periodBtns.forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const period = btn.getAttribute('data-period-btn') || '';
+        if (!period) return;
+
+        if (selectedPeriods.has(period)) {
+          selectedPeriods.delete(period);
+          setPressed(btn, false);
+        } else {
+          selectedPeriods.add(period);
+          setPressed(btn, true);
+        }
+        applyFilters();
+      });
+    });
+
+    tipoBtns.forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const tipo = btn.getAttribute('data-tipo-btn') || '';
+        if (!tipo) return;
+
+        if (selectedTipos.has(tipo)) {
+          selectedTipos.delete(tipo);
+          setPressed(btn, false);
+        } else {
+          selectedTipos.add(tipo);
+          setPressed(btn, true);
+        }
+        applyFilters();
+      });
+    });
+
+    // /programacao?tipo=minicurso já abre filtrado (usado pelo antigo /minicursos)
+    const tipoUrl = new URLSearchParams(location.search).get('tipo');
+    const btnUrl = tipoUrl ? document.querySelector<HTMLButtonElement>(`.tipo-btn[data-tipo-btn="${tipoUrl}"]`) : null;
+    if (btnUrl && !selectedTipos.has(tipoUrl!)) {
+      selectedTipos.add(tipoUrl!);
+      setPressed(btnUrl, true);
+      applyFilters();
+    }
+
     clearAllBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
       selectedDays.clear();
       selectedCategories.clear();
+      selectedPeriods.clear();
+      selectedTipos.clear();
       if (searchInput) searchInput.value = '';
 
-      calDayBtns.forEach((btn) => btn.classList.remove('active'));
-      tagBtns.forEach((btn) => btn.classList.remove('active'));
+      calDayBtns.forEach((btn) => setPressed(btn, false));
+      tagBtns.forEach((btn) => setPressed(btn, false));
+      periodBtns.forEach((btn) => setPressed(btn, false));
+      tipoBtns.forEach((btn) => setPressed(btn, false));
       applyFilters();
     });
   }

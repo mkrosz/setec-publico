@@ -1,5 +1,6 @@
 ---
 import { getEventInfo } from '@/lib/data';
+import type { EventInfo } from '@/lib/types';
 
 type NavIconName = 'home' | 'mic' | 'calendar';
 
@@ -9,12 +10,21 @@ interface NavItem {
   icon: NavIconName;
 }
 
-const event = await getEventInfo();
+interface Props {
+  event?: EventInfo;
+}
 
+const event = Astro.props.event ?? (await getEventInfo());
+
+// Com o evento oculto, Palestrantes e Programação não têm conteúdo para mostrar
 const navItems: NavItem[] = [
   { label: 'Início', href: '/', icon: 'home' },
-  { label: 'Palestrantes', href: '/#palestrantes', icon: 'mic' },
-  { label: 'Programação', href: '/programacao', icon: 'calendar' },
+  ...(event.eventoAtivo
+    ? ([
+        { label: 'Palestrantes', href: '/#palestrantes', icon: 'mic' },
+        { label: 'Programação', href: '/programacao', icon: 'calendar' },
+      ] as NavItem[])
+    : []),
 ];
 
 const currentPath = Astro.url.pathname;
@@ -25,6 +35,11 @@ const iconPaths: Record<NavIconName, string> = {
   calendar:
     'M7 3v3M17 3v3M4 8.5h16M5 5.5h14A1.5 1.5 0 0 1 20.5 7v12A1.5 1.5 0 0 1 19 20.5H5A1.5 1.5 0 0 1 3.5 19V7A1.5 1.5 0 0 1 5 5.5Z',
 };
+
+const inactiveClasses =
+  'text-[var(--text-secondary)] hover:bg-white/10 [.light_&]:hover:bg-black/5 hover:text-[var(--text-primary)] hover:scale-105 active:scale-95';
+const iconButton =
+  'flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--text-secondary)] transition-all duration-300 hover:bg-white/10 [.light_&]:hover:bg-black/5 hover:text-[var(--text-primary)] hover:scale-110 active:scale-95';
 ---
 
 <nav
@@ -39,11 +54,11 @@ const iconPaths: Record<NavIconName, string> = {
           href={item.href}
           data-nav-link
           data-href={item.href}
+          aria-label={item.label}
+          aria-current={isActive ? 'page' : undefined}
           class:list={[
             'relative flex items-center gap-1.5 rounded-full px-3.5 py-2 font-medium transition-all duration-300 ease-out sm:px-4',
-            isActive
-              ? 'bg-[var(--nav-active-bg)] text-[var(--nav-active-text)] shadow-md scale-105'
-              : 'text-[var(--text-secondary)] hover:bg-white/10 hover:text-[var(--text-primary)] hover:scale-105 active:scale-95',
+            isActive ? 'bg-[var(--nav-active-bg)] text-[var(--nav-active-text)] shadow-md scale-105' : inactiveClasses,
           ]}
         >
           <svg
@@ -51,6 +66,7 @@ const iconPaths: Record<NavIconName, string> = {
             viewBox="0 0 24 24"
             fill="none"
             class="h-4 w-4 shrink-0 transition-transform duration-300"
+            aria-hidden="true"
           >
             <path
               d={iconPaths[item.icon]}
@@ -68,63 +84,69 @@ const iconPaths: Record<NavIconName, string> = {
 
   <span class="mx-1 h-5 w-px bg-[var(--border-color)]" aria-hidden="true"></span>
 
-  <!-- Ícone Sympla com URL dinâmica do banco -->
-  <a
-    href={event.symplaUrl}
-    target="_blank"
-    rel="noopener noreferrer"
-    aria-label="Sympla"
-    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--text-secondary)] transition-all duration-300 hover:bg-white/10 hover:text-[var(--text-primary)] hover:scale-110 active:scale-95"
-  >
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-4 w-4">
-      <path
-        d="M4 9a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v1.5a1.5 1.5 0 0 0 0 3V15a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-1.5a1.5 1.5 0 0 0 0-3V9Z"
-        stroke="currentColor"
-        stroke-width="1.7"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      ></path>
-    </svg>
-  </a>
+  {
+    event.symplaUrl && (
+      <a
+        href={event.symplaUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Inscrições no Sympla (abre em nova aba)"
+        class={iconButton}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-4 w-4" aria-hidden="true">
+          <path
+            d="M4 9a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v1.5a1.5 1.5 0 0 0 0 3V15a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-1.5a1.5 1.5 0 0 0 0-3V9Z"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </a>
+    )
+  }
 
-  <!-- Ícone Instagram com URL dinâmica do banco -->
-  <a
-    href={event.instagramUrl}
-    target="_blank"
-    rel="noopener noreferrer"
-    aria-label="Instagram"
-    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--text-secondary)] transition-all duration-300 hover:bg-white/10 hover:text-[var(--text-primary)] hover:scale-110 active:scale-95"
-  >
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-4 w-4">
-      <path
-        d="M7 3.5h10A3.5 3.5 0 0 1 20.5 7v10a3.5 3.5 0 0 1-3.5 3.5H7A3.5 3.5 0 0 1 3.5 17V7A3.5 3.5 0 0 1 7 3.5ZM12 8.3a3.7 3.7 0 1 0 0 7.4 3.7 3.7 0 0 0 0-7.4ZM16.9 7.1h.01"
-        stroke="currentColor"
-        stroke-width="1.7"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      ></path>
-    </svg>
-  </a>
+  {
+    event.instagramUrl && (
+      <a
+        href={event.instagramUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Instagram (abre em nova aba)"
+        class={iconButton}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-4 w-4" aria-hidden="true">
+          <path
+            d="M7 3.5h10A3.5 3.5 0 0 1 20.5 7v10a3.5 3.5 0 0 1-3.5 3.5H7A3.5 3.5 0 0 1 3.5 17V7A3.5 3.5 0 0 1 7 3.5ZM12 8.3a3.7 3.7 0 1 0 0 7.4 3.7 3.7 0 0 0 0-7.4ZM16.9 7.1h.01"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </a>
+    )
+  }
 
-  <!-- Botão Alternar Tema -->
+  <!-- Alternar tema: o ícone segue a classe do <html>, aplicada antes da pintura no Layout -->
   <button
     type="button"
     id="theme-toggle"
-    aria-label="Alternar tema claro/escuro"
-    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--text-secondary)] transition-all duration-300 hover:bg-white/10 hover:text-[var(--text-primary)] hover:scale-110 active:scale-95 cursor-pointer"
+    aria-label="Tema claro"
+    aria-pressed="false"
+    class={`${iconButton} cursor-pointer`}
   >
-    <!-- Ícone Lua (Modo Escuro) -->
-    <svg id="theme-icon-dark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-4 w-4 transition-transform duration-300">
+    <!-- Lua (tema escuro ativo) -->
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-4 w-4 transition-transform duration-300 [.light_&]:hidden" aria-hidden="true">
       <path
         d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"
         stroke="currentColor"
         stroke-width="1.8"
         stroke-linecap="round"
-        stroke-linejoin="round"
-      ></path>
+        stroke-linejoin="round"></path>
     </svg>
-    <!-- Ícone Sol (Modo Claro) -->
-    <svg id="theme-icon-light" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="hidden h-4 w-4 transition-transform duration-300">
+    <!-- Sol (tema claro ativo) -->
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="hidden h-4 w-4 transition-transform duration-300 [.light_&]:block" aria-hidden="true">
       <circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="1.8"></circle>
       <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
     </svg>
@@ -132,6 +154,16 @@ const iconPaths: Record<NavIconName, string> = {
 </nav>
 
 <script>
+  const ACTIVE = ['bg-[var(--nav-active-bg)]', 'text-[var(--nav-active-text)]', 'shadow-md', 'scale-105'];
+  const INACTIVE = [
+    'text-[var(--text-secondary)]',
+    'hover:bg-white/10',
+    '[.light_&]:hover:bg-black/5',
+    'hover:text-[var(--text-primary)]',
+    'hover:scale-105',
+    'active:scale-95',
+  ];
+
   function setupNavbar() {
     const links = document.querySelectorAll<HTMLAnchorElement>('[data-nav-link]');
     const palestrantesSection = document.getElementById('palestrantes');
@@ -139,13 +171,10 @@ const iconPaths: Record<NavIconName, string> = {
     function setActive(activeHref: string) {
       links.forEach((link) => {
         const isTarget = link.getAttribute('data-href') === activeHref;
-        if (isTarget) {
-          link.classList.add('bg-[var(--nav-active-bg)]', 'text-[var(--nav-active-text)]', 'shadow-md', 'scale-105');
-          link.classList.remove('text-[var(--text-secondary)]', 'hover:bg-white/10', 'hover:text-[var(--text-primary)]');
-        } else {
-          link.classList.remove('bg-[var(--nav-active-bg)]', 'text-[var(--nav-active-text)]', 'shadow-md', 'scale-105');
-          link.classList.add('text-[var(--text-secondary)]', 'hover:bg-white/10', 'hover:text-[var(--text-primary)]');
-        }
+        link.classList.remove(...(isTarget ? INACTIVE : ACTIVE));
+        link.classList.add(...(isTarget ? ACTIVE : INACTIVE));
+        if (isTarget) link.setAttribute('aria-current', activeHref.includes('#') ? 'location' : 'page');
+        else link.removeAttribute('aria-current');
       });
     }
 
@@ -166,40 +195,26 @@ const iconPaths: Record<NavIconName, string> = {
       observer.observe(palestrantesSection);
     }
 
+    // Tema: mesma chave ('setec-theme') do script do <head> no Layout
     const themeToggle = document.getElementById('theme-toggle');
-    const darkIcon = document.getElementById('theme-icon-dark');
-    const lightIcon = document.getElementById('theme-icon-light');
-
-    function updateTheme(isLight: boolean) {
-      document.documentElement.classList.toggle('light', isLight);
-      document.documentElement.classList.toggle('dark', !isLight);
-
-      if (isLight) {
-        darkIcon?.classList.add('hidden');
-        lightIcon?.classList.remove('hidden');
-      } else {
-        darkIcon?.classList.remove('hidden');
-        lightIcon?.classList.add('hidden');
-      }
-    }
-
-    const savedTheme = localStorage.getItem('theme');
-    const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
-    const initialLight = savedTheme === 'light' || (!savedTheme && prefersLight);
-
-    updateTheme(initialLight);
+    const root = document.documentElement;
+    const syncPressed = () => themeToggle?.setAttribute('aria-pressed', String(root.classList.contains('light')));
+    syncPressed();
 
     if (themeToggle) {
       themeToggle.onclick = () => {
-        const isCurrentLight = document.documentElement.classList.contains('light');
-        const nextLight = !isCurrentLight;
-        localStorage.setItem('theme', nextLight ? 'light' : 'dark');
-        updateTheme(nextLight);
+        const nextLight = !root.classList.contains('light');
+        root.classList.toggle('light', nextLight);
+        root.classList.toggle('dark', !nextLight);
+        try {
+          localStorage.setItem('setec-theme', nextLight ? 'light' : 'dark');
+        } catch {
+          /* navegação privada: o tema vale só nesta página */
+        }
+        syncPressed();
       };
     }
   }
 
   setupNavbar();
-
-  document.addEventListener('astro:page-load', setupNavbar);
 </script>

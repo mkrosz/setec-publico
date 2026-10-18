@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import type { CommissionMember, CommissionGroup, EventInfo, Partner, Session, SessionLink, SessionLinkType, Speaker } from './types';
+import type { CommissionMember, CommissionGroup, EventInfo, Minicurso, Partner, Session, SessionLink, SessionLinkType, SessionWithSpeakers, Speaker } from './types';
 
 const VALID_LINK_TYPES: SessionLinkType[] = [
   'linkedin', 'site', 'instagram', 'github', 'facebook', 'twitter', 'youtube',
@@ -23,14 +23,6 @@ function parseLinks(raw: unknown): SessionLink[] {
     }];
   });
 }
-
-const eventInfo: EventInfo = {
-  editionLabel: 'Edição XXXIII',
-  institution: 'FATEC Sorocaba',
-  dateRangeLabel: '15 a 19 de Maio',
-  dateRangeDescription: 'Cinco dias de imersão tecnológica intensa e networking.',
-  socialHandle: '@SETEC.OFICIAL',
-};
 
 // Formata uma URL individual do Supabase Storage
 function formatSingleImageUrl(path: string | null | undefined): string {
@@ -59,6 +51,38 @@ function formatImageUrl(path: string | string[] | null | undefined): string[] {
   return formatted ? [formatted] : [];
 }
 
+// Palestrantes de uma palestra: usa a coluna "palestrantes" (jsonb) e, se ela
+// estiver vazia ou ausente, monta 1 palestrante a partir das colunas antigas.
+function parseSpeakers(p: Record<string, any>): Speaker[] {
+  const raw = Array.isArray(p.palestrantes) ? p.palestrantes : [];
+  const fromJson = raw.flatMap((item: unknown, i: number) => {
+    if (!item || typeof item !== 'object') return [];
+    const { nome, cargo, foto_url, sobre } = item as Record<string, unknown>;
+    const name = typeof nome === 'string' ? nome.trim() : '';
+    if (!name) return [];
+    return [{
+      id: `sp-${p.id}-${i}`,
+      name,
+      role: typeof cargo === 'string' ? cargo.trim() : '',
+      company: '',
+      photoUrl: formatImageUrl(typeof foto_url === 'string' ? foto_url : null),
+      bio: typeof sobre === 'string' ? sobre.trim() : '',
+    }];
+  });
+  if (fromJson.length > 0) return fromJson;
+
+  const name = p.nome_completo || p.palestrante || '';
+  if (!name) return [];
+  return [{
+    id: `sp-${p.id}-0`,
+    name,
+    role: p.cargo || '',
+    company: p.empresa || p.instituicao || '',
+    photoUrl: formatImageUrl(p.foto_url),
+    bio: p.sobre_palestrante || p.sobre || '',
+  }];
+}
+
 // Remove os segundos da hora ("13:00:00" -> "13:00")
 function formatTime(timeStr: string | null | undefined): string {
   if (!timeStr) return '';
@@ -69,7 +93,7 @@ function formatTime(timeStr: string | null | undefined): string {
   return timeStr;
 }
 
-// Converte datas no formato "YYYY-MM-DD" em rótulos amigáveis ("Segunda-feira, 15 de Maio")
+// Converte datas no formato "YYYY-MM-DD" em rótulos amigáveis ("Segunda-feira, 5 de outubro")
 function formatDateLabel(rawDate: string | null | undefined): { dayId: string; dayLabel: string; date: string } {
   if (!rawDate) {
     return { dayId: 'dia-1', dayLabel: 'Programação', date: '' };
@@ -88,9 +112,9 @@ function formatDateLabel(rawDate: string | null | undefined): { dayId: string; d
       const monthName = new Intl.DateTimeFormat('pt-BR', { month: 'long', timeZone: 'UTC' }).format(dateObj);
 
       const capitalizedDay = dayName.charAt(0).toUpperCase() + dayName.slice(1);
-      const capitalizedMonth = monthName.charAt(0).toUpperCase() + monthName.slice(1);
 
-      const dayLabel = `${capitalizedDay}, ${day} de ${capitalizedMonth}`;
+      // Em pt-BR o mês fica em minúsculas: "Segunda-feira, 5 de outubro"
+      const dayLabel = `${capitalizedDay}, ${day} de ${monthName.toLowerCase()}`;
       const dayId = `dia-${day}`;
 
       return { dayId, dayLabel, date: rawDate };
@@ -102,19 +126,19 @@ function formatDateLabel(rawDate: string | null | undefined): { dayId: string; d
   return { dayId: 'dia-1', dayLabel: rawDate, date: rawDate };
 }
 
-export async function getEventInfo(): Promise<EventInfo & {
-  eventoAtivo: boolean;
-  logoUrl?: string;
-  symplaUrl?: string;
-  instagramUrl?: string;
-  ano?: string;
-}> {
+/** "Edição XXXIII" -> "XXXIII" (para montar "SETEC XXXIII"). */
+function shortEdition(label: string): string {
+  return label.replace(/^\s*edi[cç][aã]o\s*/i, '').trim();
+}
+
+async function loadEventInfo(): Promise<EventInfo> {
   let eventoAtivo = true;
   let logoUrl = '';
-  let symplaUrl = 'https://www.sympla.com.br';
-  let instagramUrl = 'https://www.instagram.com';
-  let edicao = 'Edição XXXIII';
-  let datas = '15 a 19 de Maio';
+  // Sem link configurado no painel, os botões de Sympla/Instagram ficam ocultos
+  let symplaUrl = '';
+  let instagramUrl = '';
+  let edicao = '';
+  let datas = '';
   let ano = new Date().getFullYear().toString();
 
   if (supabase) {
@@ -132,26 +156,47 @@ export async function getEventInfo(): Promise<EventInfo & {
     if (data) {
       if (typeof data.evento_ativo === 'boolean') eventoAtivo = data.evento_ativo;
       if (data.logo_url) logoUrl = formatSingleImageUrl(data.logo_url);
-      if (data.sympla_url) symplaUrl = data.sympla_url;
-      if (data.instagram_url) instagramUrl = data.instagram_url;
-      if (data.edicao) edicao = data.edicao;
-      if (data.datas) datas = data.datas;
-      if (data.ano) ano = data.ano;
+      if (typeof data.sympla_url === 'string' && /^https?:\/\//i.test(data.sympla_url.trim())) symplaUrl = data.sympla_url.trim();
+      if (typeof data.instagram_url === 'string' && /^https?:\/\//i.test(data.instagram_url.trim())) instagramUrl = data.instagram_url.trim();
+      if (data.edicao) edicao = String(data.edicao).trim();
+      if (data.datas) datas = String(data.datas).trim();
+      if (data.ano) ano = String(data.ano);
     }
   }
 
+  const editionShort = shortEdition(edicao);
+
   return {
     editionLabel: edicao,
+    editionShort,
+    siteName: editionShort ? `SETEC ${editionShort}` : 'SETEC',
     institution: 'FATEC Sorocaba',
     dateRangeLabel: datas,
-    dateRangeDescription: 'Cinco dias de imersão tecnológica intensa e networking.',
-    socialHandle: '@SETEC.OFICIAL',
+    dateRangeDescription: 'Dias de imersão tecnológica intensa e networking.',
     eventoAtivo,
     logoUrl,
     symplaUrl,
     instagramUrl,
     ano,
   };
+}
+
+// Cache curto: a mesma requisição chama getEventInfo() em vários componentes
+// (página, Layout, Logo, Footer...). Alguns segundos bastam para não repetir a
+// consulta sem atrasar a publicação de mudanças feitas no painel.
+const EVENT_INFO_TTL_MS = 5_000;
+let eventInfoCache: { at: number; promise: Promise<EventInfo> } | null = null;
+
+export function getEventInfo(): Promise<EventInfo> {
+  const now = Date.now();
+  if (!eventInfoCache || now - eventInfoCache.at > EVENT_INFO_TTL_MS) {
+    const promise = loadEventInfo().catch((err) => {
+      eventInfoCache = null;
+      throw err;
+    });
+    eventInfoCache = { at: now, promise };
+  }
+  return eventInfoCache.promise;
 }
 
 export async function getPartners(): Promise<Partner[]> {
@@ -186,14 +231,14 @@ export async function getPartners(): Promise<Partner[]> {
   })) as Partner[];
 }
 
-const COMMISSION_GROUPS: CommissionGroup[] = ['professor', '4ano', '5ano'];
+const COMMISSION_GROUPS: CommissionGroup[] = ['professor', '5ano', '4ano', 'manha', 'noite'];
 
 export async function getCommission(): Promise<CommissionMember[]> {
   if (!supabase) return [];
 
  const { data, error } = await supabase
     .from('comissao_publica')
-    .select('id, nome, email, grupo')
+    .select('*')
     .order('nome', { ascending: true });
 
   if (error || !data) return [];
@@ -205,95 +250,80 @@ export async function getCommission(): Promise<CommissionMember[]> {
       name: m.nome || '',
       email: m.email || undefined,
       group: m.grupo as CommissionGroup,
+      semester: typeof m.semestre === 'number' ? m.semestre : undefined,
     }));
 }
 
-export async function getSpeakers(): Promise<Speaker[]> {
-  if (!supabase) return [];
+function mapSession(s: Record<string, any>): SessionWithSpeakers {
+  const { dayId, dayLabel, date } = formatDateLabel(s.data);
+  const speakers = parseSpeakers(s);
 
-  const { data: palestrasData } = await supabase.from('palestras').select('*').eq('rascunho', false);
-
-  if (!palestrasData) return [];
-
-  return palestrasData.map((p) => ({
-    id: `sp-${p.id}`,
-    name: p.nome_completo || p.palestrante || '',
-    role: p.cargo || '',
-    company: p.empresa || p.instituicao || '',
-    photoUrl: formatImageUrl(p.foto_url),
-    bio: p.sobre_palestrante || p.sobre || '',
-  })) as unknown as Speaker[];
+  return {
+    id: String(s.id),
+    slug: s.slug || String(s.id),
+    title: s.titulo || '',
+    category: s.categoria || 'PALESTRA',
+    date,
+    dayId: s.day_id || dayId,
+    dayLabel: s.day_label || dayLabel,
+    timeStart: formatTime(s.hora_inicio),
+    timeEnd: formatTime(s.hora_fim),
+    location: s.local || '',
+    description: s.sobre_palestra || s.descricao || '',
+    speakerIds: speakers.map((sp) => sp.id),
+    links: parseLinks(s.links),
+    speakers,
+  };
 }
 
-export async function getSpeakerById(id: string): Promise<Speaker | undefined> {
-  if (!id) return undefined;
-  const speakersList = await getSpeakers();
-  return speakersList.find((s) => String(s.id) === String(id));
-}
-
-export async function getSessions(): Promise<Session[]> {
+/** Palestras publicadas já com os palestrantes, em uma única consulta. */
+export async function getSessionsWithSpeakers(): Promise<SessionWithSpeakers[]> {
   if (!supabase) return [];
 
   const { data, error } = await supabase.from('palestras').select('*').eq('rascunho', false);
   if (error || !data) return [];
 
-  return data.map((s) => {
-    const { dayId, dayLabel, date } = formatDateLabel(s.data);
-
-    return {
-      id: String(s.id),
-      slug: s.slug || String(s.id),
-      title: s.titulo || '',
-      category: s.categoria || 'PALESTRA',
-      track: s.trilha || 'Geral',
-      date: date,
-      dayId: s.day_id || dayId,
-      dayLabel: s.day_label || dayLabel,
-      timeStart: formatTime(s.hora_inicio),
-      timeEnd: formatTime(s.hora_fim),
-      location: s.local || '',
-      description: s.sobre_palestra || s.descricao || '',
-      highlightNumber: s.highlight_number,
-      speakerIds: [`sp-${s.id}`],
-      editionTag: s.edition_tag || 'SETEC XXXIII',
-      links: parseLinks(s.links),
-    };
-  }) as Session[];
+  return data.map(mapSession);
 }
 
-export async function getFeaturedSessions(): Promise<Session[]> {
-  const allSessions = await getSessions();
-  const now = new Date();
+export async function getSpeakers(): Promise<Speaker[]> {
+  const sessions = await getSessionsWithSpeakers();
+  return sessions.flatMap((s) => s.speakers);
+}
+
+export async function getSessions(): Promise<Session[]> {
+  return getSessionsWithSpeakers();
+}
+
+/** Chave para ordenar por data e hora; itens sem data/hora vão para o fim. */
+export function scheduleKey(item: { date: string; timeStart: string }): string {
+  return `${item.date || '9999-99-99'}T${item.timeStart || '99:99'}`;
+}
+
+/** Palestras que ainda não terminaram (fuso de São Paulo), em ordem de data e hora. */
+export async function getFeaturedSessions<T extends Session = SessionWithSpeakers>(
+  preloaded?: T[],
+  limit = 3,
+): Promise<T[]> {
+  const allSessions = (preloaded ?? (await getSessionsWithSpeakers())) as T[];
+  const now = Date.now();
 
   const upcomingSessions = allSessions.filter((s) => {
     if (!s.date || !s.timeEnd) return true;
-
-    try {
-      const endTimeString = `${s.date}T${s.timeEnd.length === 5 ? s.timeEnd + ':00' : s.timeEnd}-03:00`;
-      const sessionEndTime = new Date(endTimeString);
-      return sessionEndTime.getTime() > now.getTime();
-    } catch (e) {
-      return true;
-    }
+    const end = new Date(`${s.date}T${s.timeEnd.length === 5 ? `${s.timeEnd}:00` : s.timeEnd}-03:00`).getTime();
+    return Number.isNaN(end) || end > now;
   });
 
-  upcomingSessions.sort((a, b) => {
-    const timeA = new Date(`${a.date}T${a.timeStart}`).getTime();
-    const timeB = new Date(`${b.date}T${b.timeStart}`).getTime();
-    return timeA - timeB;
-  });
+  upcomingSessions.sort((a, b) => scheduleKey(a).localeCompare(scheduleKey(b)));
 
-  return upcomingSessions.slice(0, 3);
+  return upcomingSessions.slice(0, limit);
 }
 
-export async function getSessionsGroupedByDay(): Promise<
-  { dayId: string; dayLabel: string; date: string; sessions: Session[] }[]
-> {
-  const allSessions = await getSessions();
-  const map = new Map<
-    string,
-    { dayId: string; dayLabel: string; date: string; sessions: Session[] }
-  >();
+export async function getSessionsGroupedByDay<T extends Session = SessionWithSpeakers>(
+  preloaded?: T[],
+): Promise<{ dayId: string; dayLabel: string; date: string; sessions: T[] }[]> {
+  const allSessions = (preloaded ?? (await getSessionsWithSpeakers())) as T[];
+  const map = new Map<string, { dayId: string; dayLabel: string; date: string; sessions: T[] }>();
 
   for (const session of allSessions) {
     if (!map.has(session.dayId)) {
@@ -319,53 +349,66 @@ export async function getSessionsGroupedByDay(): Promise<
   return days;
 }
 
-export async function getSessionWithSpeakers(sessionId: string) {
-  if (!supabase) return undefined;
+// ---------- Minicursos ----------
 
-  const { data: p } = await supabase
-  .from('palestras')
-  .select('*')
-  .eq('id', sessionId)
-  .eq('rascunho', false)
-  .maybeSingle();
+/** Minicursos publicados, com vagas/inscritos (função minicursos_vagas) e ordenados por data e hora. */
+export async function getMinicursos(): Promise<Minicurso[]> {
+  if (!supabase) return [];
 
-  if (!p) return undefined;
+  const [{ data, error }, vagas] = await Promise.all([
+    supabase.from('minicursos').select('*').eq('rascunho', false),
+    supabase.rpc('minicursos_vagas'),
+  ]);
+  if (error || !data) return [];
 
-  const { dayId, dayLabel, date } = formatDateLabel(p.data);
+  const ocupacao = new Map<string, number>();
+  for (const v of (vagas.data ?? []) as { minicurso_id: string; inscritos: number }[]) {
+    ocupacao.set(String(v.minicurso_id), Number(v.inscritos) || 0);
+  }
 
-  const sessionObj: Session = {
-    id: String(p.id),
-    slug: p.slug || String(p.id),
-    title: p.titulo || '',
-    category: p.categoria || 'PALESTRA',
-    track: p.trilha || 'Geral',
-    date: date,
-    dayId: p.day_id || dayId,
-    dayLabel: p.day_label || dayLabel,
-    timeStart: formatTime(p.hora_inicio),
-    timeEnd: formatTime(p.hora_fim),
-    location: p.local || '',
-    description: p.sobre_palestra || p.descricao || '',
-    highlightNumber: p.highlight_number,
-    speakerIds: [`sp-${p.id}`],
-    editionTag: p.edition_tag || 'SETEC XXXIII',
-    links: parseLinks(p.links),
+  // "Agora" no fuso de São Paulo, no formato "YYYY-MM-DDTHH:MM" para comparar com data + hora
+  const agora = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+    .format(new Date())
+    .replace(' ', 'T');
 
-  };
-
-  const speakerObj: Speaker = {
-    id: `sp-${p.id}`,
-    name: p.nome_completo || '',
-    role: p.cargo || '',
-    company: p.empresa || p.instituicao || '',
-    photoUrl: formatImageUrl(p.foto_url),
-    bio: p.sobre_palestrante || p.sobre || '',
-  };
-
-  return { ...sessionObj, speakers: [speakerObj] };
+  return data
+    .map((m) => {
+      const { dayId, dayLabel, date } = formatDateLabel(m.data);
+      const timeStart = formatTime(m.hora_inicio);
+      return {
+        id: String(m.id),
+        title: m.titulo || '',
+        category: m.categoria || 'MINICURSO',
+        date,
+        dayId,
+        dayLabel,
+        timeStart,
+        timeEnd: formatTime(m.hora_fim),
+        location: m.local || '',
+        description: m.sobre || '',
+        links: parseLinks(m.links),
+        speakers: parseSpeakers({ id: `mc-${m.id}`, palestrantes: m.ministrantes }),
+        vagas: Number(m.vagas) || 0,
+        // Inscrições manuais podem passar do limite; no site nunca mostra mais que as vagas
+        inscritos: Math.min(ocupacao.get(String(m.id)) ?? 0, Number(m.vagas) || 0),
+        encerrado: !!date && `${date}T${timeStart || '00:00'}` <= agora,
+      };
+    })
+    .sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999') || a.timeStart.localeCompare(b.timeStart));
 }
 
-export async function getAllSessionsWithSpeakers() {
-  const allSessions = await getSessions();
-  return Promise.all(allSessions.map((s) => getSessionWithSpeakers(s.id)));
+/** Turmas para o formulário de inscrição (mesma lista da presença), em ordem natural. */
+export async function getTurmas(): Promise<string[]> {
+  if (!supabase) return [];
+  const { data } = await supabase.from('presenca_turmas').select('nome');
+  return (data ?? [])
+    .map((t) => String(t.nome))
+    .sort((a, b) => a.localeCompare(b, 'pt-BR', { numeric: true }));
 }

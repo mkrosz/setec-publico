@@ -1,6 +1,5 @@
-// Tipos centrais do domínio do evento.
-// Desenhados para mapear 1:1 com as futuras tabelas do Supabase/Postgres
-// (speakers, sessions, partners) — ver README para o DDL sugerido.
+// Tipos centrais do domínio do evento (palestras, minicursos, apoiadores e comissão),
+// montados a partir das tabelas do Supabase em src/lib/data.ts.
 
 export interface Speaker {
   id: string;
@@ -27,30 +26,24 @@ export interface SessionLink {
   url: string;
 }
 
-export type SessionCategory =
-  | 'KEYNOTE'
-  | 'WORKSHOP'
-  | 'PAINEL'
-  | 'MASTERCLASS'
-  | 'PALESTRA';
-
 export interface Session {
   id: string;
   slug: string;
   title: string;
-  category: SessionCategory;
-  track: string; // ex: "Inteligência Artificial"
+  category: string; // definida no painel (ex.: "PALESTRA", "IA")
   date: string; // ISO yyyy-mm-dd
-  dayId: string; // ex: "seg-15" — chave estável usada pelos filtros de data
-  dayLabel: string; // ex: "Segunda-feira, 15 de Maio"
-  timeStart: string; // ex: "09:00 AM"
-  timeEnd: string; // ex: "10:30 AM"
+  dayId: string; // ex: "dia-5" — chave estável usada pelos filtros de data
+  dayLabel: string; // ex: "Segunda-feira, 5 de outubro"
+  timeStart: string; // "HH:MM"
+  timeEnd: string; // "HH:MM"
   location: string;
   description: string;
-  highlightNumber?: string; // ex: "#01" para a home
   speakerIds: string[];
-  editionTag: string; // ex: "SETEC XXXIII"
   links?: SessionLink[];
+}
+
+export interface SessionWithSpeakers extends Session {
+  speakers: Speaker[];
 }
 
 export type PartnerTier = 'MASTER' | 'DIAMOND' | 'TITANIUM' | 'PLATINUM' | 'GOLD';
@@ -63,18 +56,49 @@ export interface Partner {
 }
 
 export interface EventInfo {
+  /** Como veio do painel, ex.: "Edição XXXIII" (pode ser vazio). */
   editionLabel: string;
+  /** Só o número da edição, ex.: "XXXIII". */
+  editionShort: string;
+  /** Nome curto para títulos, ex.: "SETEC XXXIII". */
+  siteName: string;
   institution: string;
   dateRangeLabel: string;
   dateRangeDescription: string;
-  socialHandle: string;
+  eventoAtivo: boolean;
+  logoUrl: string;
+  /** Vazio quando não configurado no painel (botão fica oculto). */
+  symplaUrl: string;
+  /** Vazio quando não configurado no painel (link fica oculto). */
+  instagramUrl: string;
+  ano: string;
 }
 
-export type CommissionGroup = 'professor' | '4ano' | '5ano';
+export type CommissionGroup = 'professor' | '4ano' | '5ano' | 'manha' | 'noite';
 
 export interface CommissionMember {
   id: string;
   name: string;
   email?: string;
   group: CommissionGroup;
+  /** Só nos cursos semestrais (manhã e noite). */
+  semester?: number;
+}
+export interface Minicurso {
+  id: string;
+  title: string;
+  category: string;
+  date: string; // ISO yyyy-mm-dd
+  dayId: string;
+  dayLabel: string;
+  timeStart: string;
+  timeEnd: string;
+  location: string;
+  description: string;
+  links: SessionLink[];
+  speakers: Speaker[];
+  vagas: number;
+  inscritos: number;
+  /** true quando o minicurso já começou (inscrições fechadas). */
+  encerrado: boolean;
 }

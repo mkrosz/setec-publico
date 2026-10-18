@@ -1,0 +1,135 @@
+---
+import type { Minicurso } from '@/lib/types';
+import SpeakerAvatars from '@/components/SpeakerAvatars.astro';
+import { joinNames, speakerPhotos } from '@/lib/speakers';
+import { periodOf } from '@/lib/periods';
+import { scheduleLabel } from '@/lib/dates';
+
+interface Props {
+  minicurso: Minicurso;
+  dayId?: string;
+  /** Mostra o dia junto do horário (ex.: "5 out • 13:30 - 14:15"), usado na home. */
+  showDay?: boolean;
+}
+
+const { minicurso, dayId = '', showDay = false } = Astro.props;
+const schedule = scheduleLabel(minicurso, showDay);
+const photos = minicurso.speakers.flatMap(speakerPhotos);
+const restantes = Math.max(0, minicurso.vagas - minicurso.inscritos);
+const ocupacao = minicurso.vagas ? Math.min(100, Math.round((minicurso.inscritos / minicurso.vagas) * 100)) : 0;
+const status = minicurso.encerrado ? 'encerrado' : restantes === 0 ? 'esgotado' : 'aberto';
+const statusLabel =
+  status === 'encerrado'
+    ? 'Inscrições encerradas'
+    : status === 'esgotado'
+      ? 'Vagas esgotadas'
+      : `${restantes} ${restantes === 1 ? 'vaga restante' : 'vagas restantes'}`;
+---
+
+<button
+  type="button"
+  data-minicurso-trigger={minicurso.id}
+  data-minicurso-card
+  data-session-card
+  data-tipo="minicurso"
+  data-day-id={String(dayId || minicurso.dayId || '').toLowerCase().trim()}
+  data-category={minicurso.category.toLowerCase().trim()}
+  data-period={periodOf(minicurso.timeStart)}
+  data-title={minicurso.title.toLowerCase()}
+  data-speakers={minicurso.speakers.map((sp) => sp.name.toLowerCase()).join(' ')}
+  class="group relative flex aspect-[3/4] w-full flex-col overflow-hidden rounded-2xl border-2 border-accent/60 text-left shadow-[0_0_0_1px_rgba(168,85,247,0.15),0_18px_50px_-12px_rgba(168,85,247,0.45)] transition-transform duration-300 hover:-translate-y-1 hover:border-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+>
+  <div class="absolute inset-0 h-full w-full bg-gradient-to-br from-accent/30 via-[#151520] to-[#0b0b10]">
+    {
+      photos.map((url, idx) => (
+        <img
+          src={url}
+          alt=""
+          loading="lazy"
+          class:list={[
+            'minicurso-slide absolute inset-0 h-full w-full object-cover object-top transition-opacity duration-700 ease-in-out group-hover:scale-105',
+            idx === 0 ? 'opacity-100' : 'opacity-0',
+          ]}
+        />
+      ))
+    }
+  </div>
+
+  <div class="absolute inset-0 bg-gradient-to-t from-black/95 via-black/45 to-black/5" aria-hidden="true"></div>
+
+  <!-- Selo que diferencia o minicurso de uma palestra -->
+  <div class="absolute left-4 top-4 flex flex-col items-start gap-1.5">
+    <span class="flex items-center gap-1.5 rounded-full bg-accent px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-white shadow-lg">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-3.5 w-3.5" aria-hidden="true">
+        <path d="M22 10 12 5 2 10l10 5 10-5ZM6 12v5c3 2.5 9 2.5 12 0v-5M22 10v6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+      </svg>
+      Minicurso
+    </span>
+    <span class="rounded-full border border-white/15 bg-black/40 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-white/85 backdrop-blur-sm">
+      #{minicurso.category}
+    </span>
+  </div>
+  {
+    schedule && (
+      <span class="absolute right-4 top-4 rounded-full border border-white/15 bg-black/40 px-2.5 py-1 text-[11px] font-medium text-white/80 backdrop-blur-sm">
+        {schedule}
+      </span>
+    )
+  }
+
+  <div class="relative mt-auto flex flex-col gap-3 p-5">
+    <h3 class="font-display text-base font-semibold leading-snug text-white sm:text-lg">{minicurso.title}</h3>
+
+    <div class="flex items-center gap-3">
+      {minicurso.speakers.length > 1 && <SpeakerAvatars speakers={minicurso.speakers} />}
+      <div class="min-w-0">
+        <p class="line-clamp-2 text-sm font-medium leading-snug text-white/80">
+          {joinNames(minicurso.speakers.map((sp) => sp.name))}
+        </p>
+        {minicurso.speakers.length === 1 && <p class="text-xs text-white/50">{minicurso.speakers[0]?.role}</p>}
+      </div>
+    </div>
+
+    <div class="border-t border-white/15 pt-3">
+      <div class="flex items-center justify-between text-xs">
+        <span
+          data-vagas-label={minicurso.id}
+          class:list={[
+            'font-semibold',
+            // Sobre a foto escura: lilás fixo nos dois temas
+            status === 'aberto' ? 'text-[#c4b5fd]' : 'text-amber-400',
+          ]}
+        >
+          {statusLabel}
+        </span>
+        <span class="tabular-nums text-white/50" data-vagas-total={minicurso.id}>
+          {minicurso.inscritos}/{minicurso.vagas}
+        </span>
+      </div>
+      <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
+        <div
+          data-vagas-barra={minicurso.id}
+          class:list={['h-full rounded-full', status === 'aberto' ? 'bg-accent' : 'bg-amber-400']}
+          style={`width:${ocupacao}%`}
+        >
+        </div>
+      </div>
+    </div>
+  </div>
+</button>
+
+<script>
+  function setupMinicursoSlides() {
+    document.querySelectorAll('[data-minicurso-card]').forEach((card) => {
+      const slides = card.querySelectorAll<HTMLImageElement>('.minicurso-slide');
+      if (slides.length <= 1) return;
+      let current = 0;
+      setInterval(() => {
+        slides[current].classList.replace('opacity-100', 'opacity-0');
+        current = (current + 1) % slides.length;
+        slides[current].classList.replace('opacity-0', 'opacity-100');
+      }, 3000);
+    });
+  }
+  setupMinicursoSlides();
+</script>

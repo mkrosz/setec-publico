@@ -7,7 +7,7 @@ import { getEventInfo } from '@/lib/data';
 const event = await getEventInfo();
 ---
 
-<Layout title="Privacidade e Informações — SETEC XXXIII">
+<Layout title={`Privacidade e Informações — ${event.siteName}`} event={event}>
   <header class="mx-auto max-w-4xl px-6 pt-10">
     <div class="mb-8 flex items-center justify-between">
       <a
@@ -24,52 +24,87 @@ const event = await getEventInfo();
         </svg>
         Voltar para o Início
       </a>
-      <Logo />
+      <Logo event={event} />
     </div>
 
     <h1 class="font-display text-3xl font-bold uppercase leading-tight text-[var(--text-primary)] sm:text-5xl">
       Privacidade &<br />Informações Institucionais
     </h1>
     <p class="mt-4 text-sm text-[var(--text-secondary)] sm:text-base">
-      Saiba mais sobre a nossa instituição, o propósito do evento e como tratamos o seu acesso.
+      Saiba mais sobre a nossa instituição, o propósito do evento e como tratamos o seu acesso e os seus dados.
     </p>
   </header>
 
   <main class="mx-auto max-w-4xl px-6 py-12 divide-y divide-[var(--border-color)] text-[var(--text-primary)]">
     {/* Seção 1: Transparência e Privacidade */}
     <section class="pb-10 pt-2">
-      <h2 class="font-display text-xl font-bold uppercase tracking-wide text-accent mb-4">
-        🔒 Privacidade de Dados & Acesso
+      <h2 class="font-display text-xl font-bold uppercase tracking-wide text-accent mb-4 [.light_&]:text-violet-700">
+        <span aria-hidden="true">🔒</span> Privacidade de Dados & Acesso
       </h2>
       <p class="text-sm leading-relaxed text-[var(--text-secondary)] sm:text-base">
-        Este site possui caráter estritamente informativo e de consulta pública. Não realizamos coleta de dados pessoais, rastreamento de comportamento do usuário, cookies de terceiros para fins publicitários ou criação de contas de usuário. O portal opera como uma plataforma de leitura pública, sem necessidade de autenticação, senhas ou preenchimento de formulários cadastrais.
+        Este site possui caráter informativo e de consulta pública. A navegação não exige cadastro, login ou senha, e não realizamos rastreamento de comportamento do usuário nem usamos cookies de terceiros para fins publicitários. O único dado guardado no seu navegador é a sua preferência de tema (claro ou escuro), que fica apenas no seu aparelho. A única exceção é a <strong class="text-[var(--text-primary)]">inscrição em minicursos</strong>, detalhada abaixo: ela é opcional e só acontece quando você mesmo preenche e envia o formulário.<span class="ml-1 text-xs text-accent-soft/80">(Marco Civil da Internet, Lei nº 12.965/2014, art. 7º, VII a IX)</span>
       </p>
+
+      <h3 class="mb-3 mt-8 text-sm font-semibold uppercase tracking-wider text-[var(--text-primary)]">
+        Inscrição em minicursos
+      </h3>
+      <p class="mb-4 text-sm leading-relaxed text-[var(--text-secondary)] sm:text-base">
+        Como os minicursos têm vagas limitadas, ao se inscrever coletamos apenas os dados necessários para reservar e confirmar a sua vaga, em conformidade com a Lei Geral de Proteção de Dados (LGPD, Lei nº 13.709/2018). O tratamento se baseia no seu consentimento, manifestado ao enviar o formulário de inscrição, e você pode revogá-lo a qualquer momento.<span class="ml-1 text-xs text-accent-soft/80">(LGPD, art. 7º, I, e art. 8º, § 5º)</span>
+      </p>
+
+      <ul class="mb-6 space-y-3 text-sm leading-relaxed text-[var(--text-secondary)] sm:text-base">
+        <li>
+          <strong class="text-[var(--text-primary)]">Dados coletados:</strong> nome completo, RA, e-mail e turma. Não pedimos documentos, telefone, endereço ou qualquer outro dado pessoal.<span class="ml-1 text-xs text-accent-soft/80">(princípio da necessidade, LGPD, art. 6º, III)</span>
+        </li>
+        <li>
+          <strong class="text-[var(--text-primary)]">Finalidade:</strong> controlar as vagas, evitar inscrições duplicadas (pelo RA), montar a lista de inscritos do minicurso e enviar o e-mail de confirmação da inscrição. Os dados não são usados para nenhuma outra finalidade, como publicidade.<span class="ml-1 text-xs text-accent-soft/80">(princípios da finalidade e da adequação, LGPD, art. 6º, I e II)</span>
+        </li>
+        <li>
+          <strong class="text-[var(--text-primary)]">Quem tem acesso:</strong> somente a comissão organizadora da SETEC, por meio de um painel administrativo restrito e protegido por login. No site público aparece apenas a quantidade de vagas preenchidas, nunca os dados de quem se inscreveu.<span class="ml-1 text-xs text-accent-soft/80">(segurança e sigilo dos dados, LGPD, arts. 6º, VII, e 46)</span>
+        </li>
+        <li>
+          <strong class="text-[var(--text-primary)]">Compartilhamento:</strong> os dados não são vendidos nem repassados a apoiadores ou terceiros. Eles ficam armazenados no nosso banco de dados (Supabase), e o e-mail de confirmação é enviado por meio de uma conta de e-mail do evento (Google). Por serem serviços internacionais, os dados podem ser processados em servidores fora do Brasil, por fornecedores que adotam padrões de proteção de dados.<span class="ml-1 text-xs text-accent-soft/80">(LGPD, arts. 26 e 33)</span>
+        </li>
+        <li>
+          <strong class="text-[var(--text-primary)]">Por quanto tempo:</strong> os dados são mantidos apenas pelo período necessário à organização do minicurso e do evento e, depois disso, são eliminados.<span class="ml-1 text-xs text-accent-soft/80">(término do tratamento, LGPD, arts. 15 e 16)</span>
+        </li>
+        <li>
+          <strong class="text-[var(--text-primary)]">Seus direitos:</strong> você pode pedir a qualquer momento para consultar, corrigir ou excluir a sua inscrição e os seus dados, entrando em contato pelos canais oficiais informados no fim desta página. Você também pode pedir informações sobre com quem os dados foram compartilhados e reclamar à Autoridade Nacional de Proteção de Dados (ANPD).<span class="ml-1 text-xs text-accent-soft/80">(direitos do titular, LGPD, art. 18)</span>
+        </li>
+      </ul>
     </section>
 
     {/* Seção 2: Caráter Público, Laico e Sem Fins Lucrativos */}
     <section class="py-10">
-      <h2 class="font-display text-xl font-bold uppercase tracking-wide text-accent mb-4">
-        🏛️ Caráter Público, Laico e Sem Fins Lucrativos
+      <h2 class="font-display text-xl font-bold uppercase tracking-wide text-accent mb-4 [.light_&]:text-violet-700">
+        <span aria-hidden="true">🏛️</span> Caráter Público, Laico e Sem Fins Lucrativos
       </h2>
       <p class="text-sm leading-relaxed text-[var(--text-secondary)] sm:text-base">
         A Semana de Tecnologia (SETEC) é um evento de extensão universitária promovido pela FATEC Sorocaba, uma instituição pública de ensino superior mantida pelo Governo do Estado de São Paulo através do Centro Paula Souza. Reafirmamos nosso compromisso com a gratuidade, a promoção do conhecimento técnico-científico, a laicidade e o interesse público, sem qualquer vínculo político, religioso ou finalidade lucrativa.
       </p>
+
+      <ul class="mt-5 space-y-2 text-xs leading-relaxed text-[var(--text-secondary)] sm:text-sm">
+        <li><strong class="text-[var(--text-primary)]">Extensão:</strong> a educação superior tem entre suas finalidades promover a extensão, aberta à participação da comunidade <span class="text-accent-soft/80">(Lei de Diretrizes e Bases da Educação, Lei nº 9.394/1996, art. 43, VII)</span>.</li>
+        <li><strong class="text-[var(--text-primary)]">Gratuidade:</strong> o ensino público em estabelecimentos oficiais é gratuito <span class="text-accent-soft/80">(Constituição Federal, art. 206, IV)</span>.</li>
+        <li><strong class="text-[var(--text-primary)]">Laicidade:</strong> o Estado não pode estabelecer, subvencionar ou manter vínculo com cultos religiosos ou igrejas <span class="text-accent-soft/80">(Constituição Federal, art. 19, I)</span>.</li>
+        <li><strong class="text-[var(--text-primary)]">Interesse público e impessoalidade:</strong> a administração pública obedece aos princípios da legalidade, impessoalidade, moralidade, publicidade e eficiência <span class="text-accent-soft/80">(Constituição Federal, art. 37, caput)</span>.</li>
+      </ul>
     </section>
 
     {/* Seção 3: Sobre a SETEC e a Instituição */}
     <section class="py-10">
-      <h2 class="font-display text-xl font-bold uppercase tracking-wide text-accent mb-4">
-        💡 Sobre a SETEC e a FATEC Sorocaba
+      <h2 class="font-display text-xl font-bold uppercase tracking-wide text-accent mb-4 [.light_&]:text-violet-700">
+        <span aria-hidden="true">💡</span> Sobre a SETEC e a FATEC Sorocaba
       </h2>
       <p class="text-sm leading-relaxed text-[var(--text-secondary)] sm:text-base">
-        A SETEC une alunos, docentes, profissionais do mercado e entusiastas de tecnologia em uma imersão de palestras, workshops e minicursos. O evento visa impulsionar o ecossistema tecnológico regional, aproximar o ambiente acadêmico do mercado de trabalho e disseminar conhecimento sobre as principais tendências em desenvolvimento de software, inteligência artificial, infraestrutura e inovação.
+        A SETEC une alunos, docentes, profissionais do mercado e entusiastas de tecnologia em uma imersão de palestras e minicursos. O evento visa impulsionar o ecossistema tecnológico regional, aproximar o ambiente acadêmico do mercado de trabalho e disseminar conhecimento sobre as principais tendências em desenvolvimento de software, inteligência artificial, infraestrutura e inovação.
       </p>
     </section>
 
     {/* Seção 4: Apoio ao Evento e Contato direto */}
     <section id="apoio" class="pt-10">
-      <h2 class="font-display text-xl font-bold uppercase tracking-wide text-accent mb-4">
-        🤝 Apoie a SETEC
+      <h2 class="font-display text-xl font-bold uppercase tracking-wide text-accent mb-4 [.light_&]:text-violet-700">
+        <span aria-hidden="true">🤝</span> Apoie a SETEC
       </h2>
 
       <p class="text-sm leading-relaxed text-[var(--text-secondary)] sm:text-base mb-6">
@@ -84,8 +119,8 @@ const event = await getEventInfo();
       </p>
 
       <ul class="mb-6 space-y-3 text-sm leading-relaxed text-[var(--text-secondary)] sm:text-base">
-        <li><strong class="text-[var(--text-primary)]">Master (Brindes &amp; Kits):</strong> salgados, bolos, sucos, refrigerantes e café para os cinco dias do evento.</li>
-        <li><strong class="text-[var(--text-primary)]">Diamond (Coffee Break &amp; Alimentação):</strong> combos de itens para palestrantes e comissão, como chaveiros, sacolas, kits de cabos e bombons.</li>
+        <li><strong class="text-[var(--text-primary)]">Master (Brindes &amp; Kits):</strong> combos de itens para palestrantes e comissão, como chaveiros, sacolas, kits de cabos e bombons.</li>
+        <li><strong class="text-[var(--text-primary)]">Diamond (Coffee Break &amp; Alimentação):</strong> salgados, bolos, sucos, refrigerantes e café para todos os dias do evento.</li>
         <li><strong class="text-[var(--text-primary)]">Titanium (Confecção):</strong> camisetas oficiais para a comissão.</li>
         <li><strong class="text-[var(--text-primary)]">Platinum (Gráfica &amp; Impressões):</strong> backdrop, banner, crachás, adesivos e panfletos.</li>
         <li><strong class="text-[var(--text-primary)]">Gold (Decoração):</strong> materiais de decoração, como E.V.A., papel fotográfico, cortinas e fitas.</li>
@@ -116,16 +151,19 @@ const event = await getEventInfo();
         <h3 class="text-sm font-semibold uppercase tracking-wider text-[var(--text-primary)]">
           Canais Oficiais de Contato:
         </h3>
+        <p class="text-xs leading-relaxed text-[var(--text-secondary)] sm:text-sm">
+          Use estes canais para dúvidas sobre o evento e para exercer os seus direitos sobre dados pessoais
+          <span class="text-accent-soft/80">(LGPD, art. 18)</span>. Informações públicas da instituição também podem ser
+          solicitadas com base na Lei de Acesso à Informação <span class="text-accent-soft/80">(Lei nº 12.527/2011)</span>.
+        </p>
 
         <ul class="space-y-3 text-sm text-[var(--text-secondary)]">
           <li class="flex flex-wrap items-center gap-x-2">
             <span aria-hidden="true">📧</span>
             <strong>E-mail institucional:</strong>
             <a
-              href="https://mail.google.com/mail/?view=cm&fs=1&to=antonio.munari@fatec.sp.gov.br"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="text-accent hover:underline"
+              href="mailto:antonio.munari@fatec.sp.gov.br"
+              class="text-accent hover:underline [.light_&]:text-violet-700"
             >
               antonio.munari@fatec.sp.gov.br
             </a>
@@ -135,10 +173,8 @@ const event = await getEventInfo();
             <span aria-hidden="true">📧</span>
             <strong>E-mail institucional:</strong>
             <a
-              href="https://mail.google.com/mail/?view=cm&fs=1&to=cristiane.mercado@fatec.sp.gov.br"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="text-accent hover:underline"
+              href="mailto:cristiane.mercado@fatec.sp.gov.br"
+              class="text-accent hover:underline [.light_&]:text-violet-700"
             >
               cristiane.mercado@fatec.sp.gov.br
             </a>
@@ -147,12 +183,12 @@ const event = await getEventInfo();
           <li class="flex flex-wrap items-center gap-x-2">
             <span aria-hidden="true">📞</span>
             <strong>Telefone:</strong>
-            <a href="tel:+551532385266" class="text-accent hover:underline">(15) 3238-5266</a>
+            <a href="tel:+551532385266" class="text-accent hover:underline [.light_&]:text-violet-700">(15) 3238-5266</a>
           </li>
         </ul>
       </div>
     </section>
   </main>
 
-  <Footer eventAtivo={event.eventoAtivo} />
+  <Footer event={event} />
 </Layout>

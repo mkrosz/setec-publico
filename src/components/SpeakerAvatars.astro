@@ -1,0 +1,35 @@
+---
+import type { Speaker } from '@/lib/types';
+import { initials, speakerPhotos } from '@/lib/speakers';
+
+interface Props {
+  speakers: Speaker[];
+  max?: number;
+}
+
+const { speakers, max = 4 } = Astro.props;
+
+// Mostra até "max" avatares; se passar disso, o último vira "+N"
+const visible = speakers.length > max ? speakers.slice(0, max - 1) : speakers;
+const extra = speakers.length - visible.length;
+const item =
+  'flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-[#111113] bg-white/10 text-[11px] font-semibold text-white/80 backdrop-blur-sm';
+---
+
+<div class="flex -space-x-2.5" aria-hidden="true">
+  {
+    visible.map((sp, i) => {
+      const photo = speakerPhotos(sp)[0];
+      return (
+        <span class={item} style={`z-index:${visible.length - i}`} title={sp.name}>
+          {photo ? (
+            <img src={photo} alt="" loading="lazy" class="h-full w-full object-cover object-top" />
+          ) : (
+            initials(sp.name)
+          )}
+        </span>
+      );
+    })
+  }
+  {extra > 0 && <span class={item}>+{extra}</span>}
+</div>

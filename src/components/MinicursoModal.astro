@@ -1,0 +1,488 @@
+---
+import type { Minicurso } from '@/lib/types';
+
+interface Props {
+  minicursos: Minicurso[];
+  turmas: string[];
+}
+
+const { minicursos, turmas } = Astro.props;
+const field =
+  'w-full rounded-xl border border-[var(--border-color)] bg-[var(--card-bg)] px-4 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-secondary)] outline-none transition-colors focus:border-accent';
+const fieldLabel = 'mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]';
+// "<" escapado: um texto com "</script>" não quebra a página
+const minicursosJson = JSON.stringify(minicursos).replace(/</g, '\\u003c');
+---
+
+<div
+  id="minicurso-modal"
+  class="fixed inset-0 z-50 hidden items-center justify-center p-4 sm:p-6"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="mc-title"
+  data-state="closed"
+>
+  <div id="mc-backdrop" class="absolute inset-0 bg-black/70 backdrop-blur-sm [.light_&]:bg-slate-200/70" aria-hidden="true"></div>
+
+  <div class="relative z-10 w-full max-w-4xl animate-scaleIn">
+  <div
+    id="mc-panel"
+    class="modal-scroll relative max-h-[calc(100vh-7rem)] w-full overflow-y-auto rounded-2xl border border-[var(--border-color)] bg-[#111113] shadow-2xl xl:max-h-[90vh] [.light_&]:bg-white"
+  >
+    <button
+      type="button"
+      id="mc-close"
+      aria-label="Fechar"
+      class="absolute right-5 top-5 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border-color)] bg-white/10 text-[var(--text-secondary)] backdrop-blur-sm transition-colors hover:bg-white/20 [.light_&]:bg-black/5 [.light_&]:hover:bg-black/10"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-4 w-4" aria-hidden="true">
+        <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+      </svg>
+    </button>
+
+    <div class="grid grid-cols-1 gap-0 lg:grid-cols-[1fr_340px]">
+      <!-- Detalhes -->
+      <div class="p-6 sm:p-8">
+        <div class="mb-4 flex flex-wrap gap-2" id="mc-tags"></div>
+        <h2 id="mc-title" class="pr-10 font-display text-2xl font-bold uppercase leading-tight text-[var(--text-primary)] sm:text-3xl"></h2>
+
+        <div class="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-[var(--text-secondary)]">
+          <span class="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-4 w-4 text-accent-soft" aria-hidden="true">
+              <path d="M7 3v3M17 3v3M4 8.5h16M5 5.5h14A1.5 1.5 0 0 1 20.5 7v12A1.5 1.5 0 0 1 19 20.5H5A1.5 1.5 0 0 1 3.5 19V7A1.5 1.5 0 0 1 5 5.5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+            <span id="mc-date"></span>
+          </span>
+          <span class="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-4 w-4 text-accent-soft" aria-hidden="true">
+              <circle cx="12" cy="12" r="8.25" stroke="currentColor" stroke-width="1.6"></circle>
+              <path d="M12 8v4l2.5 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+            <span id="mc-time"></span>
+          </span>
+          <span class="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-4 w-4 text-accent-soft" aria-hidden="true">
+              <path d="M12 21s7-6.1 7-11.5a7 7 0 1 0-14 0C5 14.9 12 21 12 21Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"></path>
+              <circle cx="12" cy="9.5" r="2.2" stroke="currentColor" stroke-width="1.6"></circle>
+            </svg>
+            <span id="mc-location"></span>
+          </span>
+        </div>
+
+        <h3 class="mb-2 mt-6 font-display text-base font-semibold text-accent-soft">Sobre o minicurso</h3>
+        <p id="mc-description" class="whitespace-pre-line text-sm leading-relaxed text-[var(--text-secondary)]"></p>
+
+        <h3 class="mb-3 mt-6 font-display text-base font-semibold text-accent-soft" id="mc-speakers-label">Ministrante</h3>
+        <div id="mc-speakers" class="space-y-4"></div>
+      </div>
+
+      <!-- Inscrição -->
+      <aside class="border-t border-[var(--border-color)] bg-white/[0.02] p-6 sm:p-8 lg:border-l lg:border-t-0 [.light_&]:bg-slate-50">
+        <h3 class="font-display text-lg font-bold text-[var(--text-primary)]">Inscrição</h3>
+
+        <div class="mt-3">
+          <div class="flex items-baseline justify-between text-sm">
+            <span id="mc-vagas-texto" class="font-semibold text-accent-soft"></span>
+            <span id="mc-vagas-conta" class="tabular-nums text-[var(--text-secondary)]"></span>
+          </div>
+          <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10 [.light_&]:bg-black/10">
+            <div id="mc-vagas-barra" class="h-full rounded-full bg-accent transition-all"></div>
+          </div>
+        </div>
+
+        <form id="mc-form" class="mt-5 space-y-3.5" novalidate>
+          <div>
+            <label for="mc-nome" class={fieldLabel}>Nome completo</label>
+            <input id="mc-nome" name="nome" autocomplete="name" maxlength="160" required class={field} />
+          </div>
+          <div>
+            <label for="mc-ra" class={fieldLabel}>RA</label>
+            <input id="mc-ra" name="ra" inputmode="numeric" maxlength="20" required class={field} placeholder="Somente números" />
+          </div>
+          <div>
+            <label for="mc-email" class={fieldLabel}>E-mail</label>
+            <input id="mc-email" name="email" type="email" autocomplete="email" maxlength="160" required class={field} />
+            <button
+              type="button"
+              id="mc-email-sugestao"
+              class="mt-1.5 hidden px-1 text-left text-xs font-medium text-amber-400 hover:underline [.light_&]:text-amber-600"
+            ></button>
+          </div>
+          <div>
+            <label for="mc-turma" class={fieldLabel}>Turma</label>
+            <div class="relative">
+              <!-- color-scheme + cores das opções: a lista nativa segue o tema (no escuro ficava branco no branco) -->
+              <select
+                id="mc-turma"
+                name="turma"
+                required
+                class={`${field} appearance-none pr-10 [color-scheme:dark] [.light_&]:[color-scheme:light] [&>option]:bg-[#111113] [&>option]:text-white [.light_&>option]:bg-white [.light_&>option]:text-slate-900`}
+              >
+              <option value="" disabled selected>Selecione...</option>
+              {turmas.map((t) => <option value={t}>{t}</option>)}
+              <option value="N/A">N/A</option>
+            </select>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                class="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-secondary)]"
+                aria-hidden="true"
+              >
+                <path d="m6 9 6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+              </svg>
+            </div>
+          </div>
+
+          <p id="mc-erro" class="hidden rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-400 [.light_&]:text-red-600" role="alert"></p>
+
+          <button
+            type="submit"
+            id="mc-enviar"
+            class="flex h-11 w-full items-center justify-center gap-2 rounded-full bg-accent text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Confirmar inscrição
+          </button>
+        </form>
+
+        <div id="mc-fechado" class="mt-5 hidden rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-300 [.light_&]:text-amber-700"></div>
+
+        <!-- Confirmação: ocupa o lugar do formulário -->
+        <div id="mc-sucesso" class="mt-5 hidden flex-col items-center rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-5 py-7 text-center" role="status">
+          <span class="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500 text-white">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" class="h-6 w-6" aria-hidden="true">
+              <path d="m5 12.5 4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+          </span>
+          <p class="mt-4 font-display text-lg font-bold text-[var(--text-primary)]">Inscrição confirmada!</p>
+          <p class="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]" id="mc-sucesso-texto"></p>
+          <button
+            type="button"
+            id="mc-outra"
+            class="mt-5 rounded-full border border-[var(--border-color)] px-4 py-2 text-xs font-semibold text-[var(--text-primary)] transition-colors hover:border-accent"
+          >
+            Inscrever outra pessoa
+          </button>
+        </div>
+      </aside>
+    </div>
+  </div>
+  <!-- Links: ao lado do modal no desktop, abaixo dele em telas menores (mesmo visual do modal de palestra) -->
+  <div
+    id="mc-links"
+    class="link-chips mt-3 flex flex-wrap justify-center gap-2 xl:absolute xl:left-full xl:top-6 xl:ml-3 xl:mt-0 xl:flex-col xl:items-start xl:justify-start"
+  ></div>
+  </div>
+</div>
+
+<script type="application/json" id="minicursos-data" set:html={minicursosJson}></script>
+
+<script>
+  // Chamada direta à função do banco (sem carregar a biblioteca do Supabase no navegador)
+  const SUPABASE_URL = import.meta.env.PUBLIC_SUPABASE_URL ?? '';
+  const SUPABASE_KEY = import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? '';
+
+  import { sugerirEmail } from '@/lib/email';
+  import { createModalA11y } from '@/lib/modal-a11y';
+  import { renderLinkChips } from '@/lib/link-chips';
+
+  async function inscrever(body: Record<string, string>): Promise<{ data: unknown; error: { message: string } | null }> {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/inscrever_minicurso`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+        },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok) return { data: null, error: { message: json?.message || 'Não foi possível concluir a inscrição.' } };
+      return { data: json, error: null };
+    } catch {
+      return { data: null, error: { message: 'Sem conexão. Verifique sua internet e tente novamente.' } };
+    }
+  }
+
+  interface SpeakerData {
+    name: string;
+    role: string;
+    company: string;
+    photoUrl: string | string[];
+    bio: string;
+  }
+  interface MinicursoData {
+    id: string;
+    title: string;
+    category: string;
+    dayLabel: string;
+    timeStart: string;
+    timeEnd: string;
+    location: string;
+    description: string;
+    links: { type: string; url: string }[];
+    speakers: SpeakerData[];
+    vagas: number;
+    inscritos: number;
+    encerrado: boolean;
+  }
+
+  const dados: MinicursoData[] = JSON.parse(document.getElementById('minicursos-data')?.textContent || '[]');
+  const modal = document.getElementById('minicurso-modal') as HTMLDivElement;
+  const form = document.getElementById('mc-form') as HTMLFormElement;
+  const erroEl = document.getElementById('mc-erro')!;
+  const enviar = document.getElementById('mc-enviar') as HTMLButtonElement;
+  const fechadoEl = document.getElementById('mc-fechado')!;
+  const sucessoEl = document.getElementById('mc-sucesso')!;
+  let atual: MinicursoData | null = null;
+  let sucesso = false;
+  let emailAvisado = '';
+  const emailInput = document.getElementById('mc-email') as HTMLInputElement;
+  const sugestaoBtn = document.getElementById('mc-email-sugestao') as HTMLButtonElement;
+
+  /** Mostra "Você quis dizer ...?" embaixo do e-mail quando o domínio parece digitado errado. */
+  function atualizarSugestao() {
+    const sugestao = sugerirEmail(emailInput.value);
+    sugestaoBtn.classList.toggle('hidden', !sugestao);
+    sugestaoBtn.textContent = sugestao ? `Você quis dizer ${sugestao}? Clique para corrigir.` : '';
+    sugestaoBtn.dataset.sugestao = sugestao ?? '';
+  }
+  // Só sugere quando a pessoa termina de digitar e sai do campo; ao voltar a digitar, some
+  emailInput.addEventListener('blur', atualizarSugestao);
+  emailInput.addEventListener('input', () => sugestaoBtn.classList.add('hidden'));
+  sugestaoBtn.addEventListener('click', () => {
+    if (!sugestaoBtn.dataset.sugestao) return;
+    emailInput.value = sugestaoBtn.dataset.sugestao;
+    erroEl.classList.add('hidden');
+    atualizarSugestao();
+  });
+
+  const $ = (id: string) => document.getElementById(id)!;
+  const fotoDe = (sp: SpeakerData) => (Array.isArray(sp.photoUrl) ? sp.photoUrl[0] : sp.photoUrl) || '';
+  const iniciais = (nome: string) => {
+    const p = nome.trim().split(/\s+/);
+    return `${p[0]?.[0] ?? '?'}${p[1]?.[0] ?? ''}`.toUpperCase();
+  };
+
+  function textoVagas(m: MinicursoData) {
+    const restantes = Math.max(0, m.vagas - m.inscritos);
+    if (m.encerrado) return 'Inscrições encerradas';
+    if (restantes === 0) return 'Vagas esgotadas';
+    return `${restantes} ${restantes === 1 ? 'vaga restante' : 'vagas restantes'}`;
+  }
+
+  /** Atualiza a barra de vagas no modal e no card do minicurso. */
+  function renderVagas(m: MinicursoData) {
+    const aberto = !m.encerrado && m.inscritos < m.vagas;
+    const pct = m.vagas ? Math.min(100, Math.round((m.inscritos / m.vagas) * 100)) : 0;
+    $('mc-vagas-texto').textContent = textoVagas(m);
+    $('mc-vagas-texto').className = `font-semibold ${aberto ? 'text-accent-soft' : 'text-amber-400 [.light_&]:text-amber-600'}`;
+    $('mc-vagas-conta').textContent = `${m.inscritos}/${m.vagas}`;
+    const barra = $('mc-vagas-barra');
+    barra.style.width = `${pct}%`;
+    barra.className = `h-full rounded-full transition-all ${aberto ? 'bg-accent' : 'bg-amber-400 [.light_&]:bg-amber-500'}`;
+
+    const label = document.querySelector<HTMLElement>(`[data-vagas-label="${m.id}"]`);
+    if (label) {
+      label.textContent = textoVagas(m);
+      // Card fica sobre foto escura: lilás fixo nos dois temas
+      label.className = `font-semibold ${aberto ? 'text-[#c4b5fd]' : 'text-amber-400'}`;
+    }
+    const total = document.querySelector<HTMLElement>(`[data-vagas-total="${m.id}"]`);
+    if (total) total.textContent = `${m.inscritos}/${m.vagas}`;
+    const barraCard = document.querySelector<HTMLElement>(`[data-vagas-barra="${m.id}"]`);
+    if (barraCard) {
+      barraCard.style.width = `${pct}%`;
+      barraCard.className = `h-full rounded-full ${aberto ? 'bg-accent' : 'bg-amber-400'}`;
+    }
+
+    form.classList.toggle('hidden', sucesso || !aberto);
+    fechadoEl.classList.toggle('hidden', sucesso || aberto);
+    sucessoEl.classList.toggle('hidden', !sucesso);
+    sucessoEl.classList.toggle('flex', sucesso);
+    fechadoEl.textContent = m.encerrado
+      ? 'As inscrições para este minicurso foram encerradas.'
+      : 'Todas as vagas foram preenchidas.';
+  }
+
+  function renderSpeakers(m: MinicursoData) {
+    $('mc-speakers-label').textContent = m.speakers.length > 1 ? 'Ministrantes' : 'Ministrante';
+    const box = $('mc-speakers');
+    box.innerHTML = '';
+    m.speakers.forEach((sp) => {
+      const bloco = document.createElement('div');
+      bloco.className = 'flex gap-3';
+
+      const avatar = document.createElement('span');
+      avatar.className =
+        'flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[var(--border-color)] bg-[var(--card-bg)] text-xs font-semibold text-[var(--text-secondary)]';
+      const foto = fotoDe(sp);
+      if (foto) {
+        const img = document.createElement('img');
+        img.src = foto;
+        img.alt = '';
+        img.className = 'h-full w-full object-cover object-top';
+        avatar.append(img);
+      } else {
+        avatar.textContent = iniciais(sp.name);
+      }
+
+      const info = document.createElement('div');
+      info.className = 'min-w-0';
+      const nome = document.createElement('p');
+      nome.className = 'text-sm font-semibold text-[var(--text-primary)]';
+      nome.textContent = sp.name;
+      info.append(nome);
+      if (sp.role) {
+        const cargo = document.createElement('p');
+        cargo.className = 'text-xs text-[var(--text-secondary)]';
+        cargo.textContent = sp.role;
+        info.append(cargo);
+      }
+      if (sp.bio) {
+        const bio = document.createElement('p');
+        bio.className = 'mt-1.5 text-sm leading-relaxed text-[var(--text-secondary)]';
+        bio.textContent = sp.bio;
+        info.append(bio);
+      }
+      bloco.append(avatar, info);
+      box.append(bloco);
+    });
+  }
+
+  const panel = $('mc-panel');
+  const linksBox = $('mc-links');
+  const a11y = createModalA11y({
+    scopes: () => [panel, linksBox],
+    initialFocus: () => $('mc-close'),
+    onEscape: () => fechar(),
+  });
+
+  function abrir(id: string) {
+    const m = dados.find((d) => d.id === id);
+    if (!m) return;
+    atual = m;
+
+    const tags = $('mc-tags');
+    tags.innerHTML = '';
+    for (const texto of ['#MINICURSO', `#${m.category}`]) {
+      const tag = document.createElement('span');
+      tag.className =
+        'rounded-full border border-[var(--border-color)] bg-[var(--card-bg)] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-primary)]';
+      tag.textContent = texto;
+      tags.append(tag);
+    }
+    $('mc-title').textContent = m.title;
+    $('mc-date').textContent = m.dayLabel || 'Data a definir';
+    $('mc-time').textContent = m.timeStart ? `${m.timeStart}${m.timeEnd ? ` - ${m.timeEnd}` : ''}` : 'Horário a definir';
+    $('mc-location').textContent = m.location || 'Local a definir';
+    $('mc-description').textContent = m.description || 'Sem descrição.';
+    renderSpeakers(m);
+    renderLinkChips(linksBox, m.links);
+
+    form.reset();
+    erroEl.classList.add('hidden');
+    sucesso = false;
+    emailAvisado = '';
+    atualizarSugestao();
+    enviar.disabled = false;
+    enviar.textContent = 'Confirmar inscrição';
+    renderVagas(m);
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    modal.dataset.state = 'open';
+    document.body.classList.add('modal-open');
+    panel.scrollTop = 0;
+    a11y.activate();
+  }
+
+  function fechar() {
+    if (modal.dataset.state !== 'open') return;
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    modal.dataset.state = 'closed';
+    document.body.classList.remove('modal-open');
+    a11y.deactivate();
+  }
+
+  function mostrarErro(msg: string) {
+    erroEl.textContent = msg;
+    erroEl.classList.remove('hidden');
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!atual) return;
+    erroEl.classList.add('hidden');
+
+    const fd = new FormData(form);
+    const nome = String(fd.get('nome') || '').trim().replace(/\s+/g, ' ');
+    const ra = String(fd.get('ra') || '').replace(/\D/g, '');
+    const email = String(fd.get('email') || '').trim();
+    // Domínio parecido com um comum (ex.: gmqil.com): avisa uma vez antes de enviar
+    const sugestao = sugerirEmail(email);
+    if (sugestao && emailAvisado !== email) {
+      emailAvisado = email;
+      atualizarSugestao();
+      return mostrarErro(`Confira o e-mail: você quis dizer ${sugestao}? Se o seu e-mail é mesmo esse, envie de novo.`);
+    }
+    const turma = String(fd.get('turma') || '');
+
+    if (nome.length < 3 || !nome.includes(' ')) return mostrarErro('Informe seu nome completo.');
+    if (!/^\d{5,20}$/.test(ra)) return mostrarErro('RA inválido. Use apenas números.');
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return mostrarErro('Informe um e-mail válido.');
+    if (!turma) return mostrarErro('Selecione a sua turma.');
+    if (!SUPABASE_URL || !SUPABASE_KEY) return mostrarErro('Inscrições indisponíveis no momento.');
+
+    enviar.disabled = true;
+    enviar.textContent = 'Enviando...';
+    const { data, error } = await inscrever({
+      _minicurso: atual.id,
+      _nome: nome,
+      _ra: ra,
+      _email: email,
+      _turma: turma,
+    });
+    enviar.disabled = false;
+    enviar.textContent = 'Confirmar inscrição';
+
+    if (error) {
+      mostrarErro(error.message || 'Não foi possível concluir a inscrição.');
+      // Se esgotou enquanto a pessoa preenchia, reflete isso na tela
+      if (/esgotad/i.test(error.message)) {
+        atual.inscritos = atual.vagas;
+        renderVagas(atual);
+      }
+      return;
+    }
+
+    const restantes = typeof data === 'number' ? data : Math.max(0, atual.vagas - atual.inscritos - 1);
+    atual.inscritos = atual.vagas - restantes;
+    sucesso = true;
+    $('mc-sucesso-texto').textContent =
+      `${nome.split(' ')[0]}, sua vaga em "${atual.title}" está garantida. Enviamos a confirmação para ${email}.`;
+    form.reset();
+    renderVagas(atual);
+  });
+
+  document.addEventListener('click', (event) => {
+    const trigger = (event.target as HTMLElement)?.closest<HTMLElement>('[data-minicurso-trigger]');
+    if (trigger?.dataset.minicursoTrigger) abrir(trigger.dataset.minicursoTrigger);
+  });
+  $('mc-outra').addEventListener('click', () => {
+    if (!atual) return;
+    sucesso = false;
+    renderVagas(atual);
+    (document.getElementById('mc-nome') as HTMLInputElement).focus();
+  });
+  // Clique fora do painel e dos links (fundo escuro ou área transparente em volta) fecha
+  modal.addEventListener('click', (e) => {
+    const target = e.target as Element | null;
+    if (!target || !target.isConnected) return;
+    if (panel.contains(target) || target.closest('.link-chip')) return;
+    fechar();
+  });
+  $('mc-close').addEventListener('click', fechar);
+</script>

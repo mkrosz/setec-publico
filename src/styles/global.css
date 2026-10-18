@@ -81,6 +81,9 @@ html.light {
   --nav-bg: rgba(255, 255, 255, 0.85);
   --nav-active-bg: #0f172a;
   --nav-active-text: #ffffff;
+  /* No claro, o lilás (#c4b5fd) some no fundo branco: usa um roxo escuro.
+     Cards com foto/sobreposição escura usam text-[#c4b5fd] fixo. */
+  --color-accent-soft: #6d28d9;
 }
 
 html {
@@ -121,4 +124,72 @@ body {
 /* Modal open state: trava scroll do body */
 body.modal-open {
   overflow: hidden;
+}
+/* ---------- Chips de links dos modais (src/lib/link-chips.ts) ---------- */
+
+/* Largura máxima do texto: abaixo do modal (telas menores) */
+.link-chips {
+  --link-text-max: min(280px, calc(100vw - 7rem));
+}
+
+/* Ao lado do modal (xl): espaço livre à direita do modal (max-w-4xl = 56rem),
+   descontando margem, ícone, padding e uma folga */
+@media (min-width: 1280px) {
+  .link-chips {
+    --link-text-max: calc((100vw - 56rem) / 2 - 6rem);
+    width: max-content;
+  }
+}
+
+/* Anima até a largura exata do conteúdo, sem limite fixo */
+.link-chips .link-reveal {
+  display: grid;
+  grid-template-columns: 0fr;
+  transition: grid-template-columns 500ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.link-chips .link-chip:hover .link-reveal,
+.link-chips .link-chip:focus-visible .link-reveal {
+  grid-template-columns: 1fr;
+}
+.link-chips .link-clip {
+  min-width: 0;
+  overflow: hidden;
+}
+.link-chips .link-text {
+  width: max-content;
+  max-width: var(--link-text-max);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .link-chips .link-reveal {
+    transition: none;
+  }
+}
+
+/* Barra de rolagem dos modais: arredondada e afastada dos cantos */
+.modal-scroll::-webkit-scrollbar {
+  width: 14px;
+}
+.modal-scroll::-webkit-scrollbar-track {
+  background: transparent;
+  /* maior que o raio do canto (rounded-2xl = 1.25rem) para a barra não encostar nas curvas */
+  margin-block: 22px;
+}
+.modal-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.55);
+  border-radius: 999px;
+  /* a borda transparente cria a folga lateral, deixando o thumb mais fino e afastado da borda */
+  border: 4px solid transparent;
+  background-clip: padding-box;
+}
+.modal-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(148, 163, 184, 0.85);
+}
+
+/* Firefox não suporta margem na trilha, então usa a versão fina padrão */
+@supports not selector(::-webkit-scrollbar) {
+  .modal-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.6) transparent;
+  }
 }

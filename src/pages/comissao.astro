@@ -8,19 +8,27 @@ import type { CommissionGroup } from '@/lib/types';
 const event = await getEventInfo();
 const members = await getCommission();
 
-const GROUPS: { id: CommissionGroup; title: string }[] = [
+const GROUPS: { id: CommissionGroup; title: string; semestral?: boolean }[] = [
   { id: 'professor', title: 'Professores' },
   { id: '5ano', title: '5º Ano' },
   { id: '4ano', title: '4º Ano' },
+  { id: 'manha', title: 'Curso da Manhã', semestral: true },
+  { id: 'noite', title: 'Curso da Noite', semestral: true },
 ];
 
-const sections = GROUPS.map((g) => ({
-  ...g,
-  members: members.filter((m) => m.group === g.id),
-})).filter((g) => g.members.length > 0);
+// Cursos semestrais: membros separados por semestre (1º, 2º, ...)
+const sections = GROUPS.map((g) => {
+  const list = members.filter((m) => m.group === g.id);
+  const semesters = g.semestral
+    ? Array.from(new Set(list.map((m) => m.semester ?? 0)))
+        .sort((a, b) => (a || 99) - (b || 99))
+        .map((n) => ({ n, members: list.filter((m) => (m.semester ?? 0) === n) }))
+    : [{ n: 0, members: list }];
+  return { ...g, total: list.length, semesters };
+}).filter((g) => g.total > 0);
 ---
 
-<Layout title="Comissão — SETEC XXXIII">
+<Layout title={`Comissão — ${event.siteName}`} event={event}>
   <header class="mx-auto max-w-4xl px-6 pt-10">
     <div class="mb-8 flex items-center justify-between">
       <a
@@ -32,7 +40,7 @@ const sections = GROUPS.map((g) => ({
         </svg>
         Voltar para o Início
       </a>
-      <Logo />
+      <Logo event={event} />
     </div>
 
     <h1 class="font-display text-3xl font-bold uppercase leading-tight text-[var(--text-primary)] sm:text-5xl">
@@ -58,24 +66,33 @@ const sections = GROUPS.map((g) => ({
         <div class="divide-y divide-[var(--border-color)]">
           {sections.map((section) => (
             <section class="py-10 first:pt-0">
-              <h2 class="mb-5 font-display text-xl font-bold uppercase tracking-wide text-accent">
+              <h2 class="mb-5 font-display text-xl font-bold uppercase tracking-wide text-accent [.light_&]:text-violet-700">
                 {section.title}
               </h2>
-              <ul class="grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2">
-                {section.members.map((member) => (
-                  <li class="text-sm sm:text-base">
-                    <span class="text-[var(--text-primary)]">{member.name}</span>
-                    {member.email && (
-                    <a
-                        href={`mailto:${member.email}`}
-                        class="block text-xs text-accent hover:underline sm:text-sm"
-                    >
-                        {member.email}
-                    </a>
+              <div class="space-y-6">
+                {section.semesters.map((sem) => (
+                  <div>
+                    {sem.n > 0 && (
+                      <h3 class="mb-3 flex items-center gap-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">
+                        <span>{sem.n}º Semestre</span>
+                        <span class="h-px flex-1 bg-[var(--border-color)]" aria-hidden="true" />
+                      </h3>
                     )}
-                </li>
+                    <ul class="grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2">
+                      {sem.members.map((member) => (
+                        <li class="text-sm sm:text-base">
+                          <span class="text-[var(--text-primary)]">{member.name}</span>
+                          {member.email && (
+                            <a href={`mailto:${member.email}`} class="block text-xs text-accent hover:underline sm:text-sm [.light_&]:text-violet-700">
+                              {member.email}
+                            </a>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </section>
           ))}
         </div>
@@ -83,5 +100,5 @@ const sections = GROUPS.map((g) => ({
     }
   </main>
 
-  <Footer eventAtivo={event.eventoAtivo} />
+  <Footer event={event} />
 </Layout>
